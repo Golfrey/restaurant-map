@@ -1,0 +1,144 @@
+{
+  "state": {
+    "timestamp": "2026-06-30T19:58:07.499Z",
+    "url": "http://127.0.0.1:5173/",
+    "hasMapCanvas": true,
+    "canvas": {
+      "width": 1040,
+      "height": 844,
+      "clientWidth": 1040,
+      "clientHeight": 844
+    },
+    "maplibreControls": 2,
+    "shownCount": "2,926 shown",
+    "title": "New York City Restaurant Map"
+  },
+  "network": [
+    {
+      "status": 200,
+      "type": "script",
+      "url": "http://127.0.0.1:5173/src/MapView.tsx?t=1782849400207"
+    },
+    {
+      "failed": true,
+      "type": "fetch",
+      "url": "http://127.0.0.1:5173/api/restaurants?city=nyc",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "http://127.0.0.1:5173/api/restaurants?city=nyc"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/styles/stamen_toner_lite.json"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/styles/stamen-toner/sprite.png"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/styles/stamen-toner/sprite.json"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen_null.json"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt.json"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/602/770.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/602/769.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/601/770.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/604/769.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/604/770.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/601/769.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/603/769.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/11/603/770.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/fonts/Inter%20Bold/0-255.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/fonts/Inter%20Italic/0-255.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/150/192.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/fonts/Noto%20Sans%20Regular/0-255.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/151/191.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/151/192.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/150/191.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/151/193.pbf"
+    },
+    {
+      "status": 200,
+      "type": "fetch",
+      "url": "https://tiles.stadiamaps.com/data/stamen-omt/9/150/193.pbf"
+    }
+  ]
+}
