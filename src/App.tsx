@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { MapPin, RefreshCw, Search, Utensils } from "lucide-react";
 import { defaultCityCode, getCity, supportedCities, type CityCode } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
@@ -16,7 +16,8 @@ import { useRestaurantData } from "./hooks/useRestaurantData";
 import { useTheme } from "./hooks/useTheme";
 import { cn } from "./lib/utils";
 import { filterRestaurants, topTags, type SourceFilter } from "./appUtils";
-import { MapView } from "./MapView";
+
+const MapView = lazy(() => import("./MapView").then((module) => ({ default: module.MapView })));
 
 export default function App() {
   const [cityCode, setCityCode] = useState<CityCode>(defaultCityCode);
@@ -153,13 +154,15 @@ export default function App() {
         </aside>
 
         <section className="relative min-h-0 min-w-0 bg-muted max-md:h-[60vh]">
-          <MapView
-            restaurants={restaurants}
-            selectedId={selectedRestaurant?.id}
-            mapTone={mapTone}
-            cityCenter={selectedCity.center}
-            onSelect={selectRestaurant}
-          />
+          <Suspense fallback={<div className="map-canvas" />}>
+            <MapView
+              restaurants={restaurants}
+              selectedId={selectedRestaurant?.id}
+              mapTone={mapTone}
+              cityCenter={selectedCity.center}
+              onSelect={selectRestaurant}
+            />
+          </Suspense>
           <RestaurantDetails restaurant={selectedRestaurant} />
         </section>
       </div>
