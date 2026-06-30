@@ -63,7 +63,7 @@ export function sourceLabel(source: Restaurant["source"]): string {
 
 export function formatAddress(restaurant: Restaurant): string {
   const address = restaurant.address;
-  if (!address) return restaurant.neighborhood ?? "New York City";
+  if (!address) return restaurant.neighborhood ?? "Restaurant location";
   return [address.street, address.city, address.state, address.postalCode].filter(Boolean).join(", ");
 }
 

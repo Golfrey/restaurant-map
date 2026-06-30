@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CityCode } from "../../shared/cities";
 import type { RestaurantResponse } from "../../shared/types";
 import { fetchRestaurants } from "../api";
 
-export function useRestaurantData() {
+export function useRestaurantData(city: CityCode) {
   const [data, setData] = useState<RestaurantResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +20,7 @@ export function useRestaurantData() {
     setLoading(true);
     setError(null);
     try {
-      const payload = await fetchRestaurants(refresh, controller.signal);
+      const payload = await fetchRestaurants({ city, refresh, signal: controller.signal });
       if (requestId !== requestIdRef.current) return;
       setData(payload);
     } catch (err) {
@@ -31,9 +32,10 @@ export function useRestaurantData() {
         abortRef.current = null;
       }
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
+    setData(null);
     void load(false);
     return () => {
       requestIdRef.current += 1;

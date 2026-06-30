@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import maplibregl, { type GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection, Point } from "geojson";
+import type { CityCenter } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
 import {
   addRestaurantLayers,
@@ -22,10 +23,11 @@ interface MapViewProps {
   restaurants: Restaurant[];
   selectedId?: string;
   mapTone: MapTone;
+  cityCenter: CityCenter;
   onSelect: (restaurant: Restaurant) => void;
 }
 
-export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewProps) {
+export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -34,6 +36,7 @@ export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewP
   const dataRef = useRef<FeatureCollection<Point>>(featureCollection([]));
   const onSelectRef = useRef(onSelect);
   const selectedIdRef = useRef(selectedId);
+  const cityCenterRef = useRef(cityCenter);
   const styleToneRef = useRef<MapTone | null>(null);
   const data = useMemo(() => featureCollection(restaurants), [restaurants]);
 
@@ -41,6 +44,7 @@ export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewP
   dataRef.current = data;
   onSelectRef.current = onSelect;
   selectedIdRef.current = selectedId;
+  cityCenterRef.current = cityCenter;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -48,7 +52,7 @@ export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewP
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: mapStyleUrl(mapTone),
-      center: [-74.006, 40.7128],
+      center: [cityCenterRef.current.longitude, cityCenterRef.current.latitude],
       zoom: 11,
       attributionControl: false
     });
@@ -146,7 +150,15 @@ export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewP
         popupRestaurantIdRef.current = null;
       }
 
-      if (!restaurants.length) return;
+      if (!restaurants.length) {
+        map.easeTo({
+          center: [cityCenter.longitude, cityCenter.latitude],
+          zoom: 11,
+          duration: 450
+        });
+        return;
+      }
+
       const bounds = new maplibregl.LngLatBounds();
       for (const restaurant of restaurants) {
         bounds.extend([restaurant.longitude, restaurant.latitude]);
@@ -163,7 +175,7 @@ export function MapView({ restaurants, selectedId, mapTone, onSelect }: MapViewP
     } else {
       map.once("load", syncData);
     }
-  }, [data, restaurants]);
+  }, [cityCenter, data, restaurants]);
 
   useEffect(() => {
     const map = mapRef.current;

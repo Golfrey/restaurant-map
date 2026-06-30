@@ -66,6 +66,29 @@ describe("loadRestaurants cache behavior", () => {
     expect(cached.restaurants[0].name).toBe("Test Restaurant");
   });
 
+  test("keeps cache files scoped by city", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "resy-inkind-city-test-"));
+    const nycConfig = { ...getConfig("nyc"), cacheDir: dir, cacheTtlHours: 12 };
+    const laConfig = { ...getConfig("la"), cacheDir: dir, cacheTtlHours: 12 };
+
+    await loadRestaurants(nycConfig, {
+      now: new Date("2026-06-30T17:00:00Z"),
+      fetchResy: async () => [baseRestaurant],
+      fetchInKind: async () => []
+    });
+    await loadRestaurants(laConfig, {
+      now: new Date("2026-06-30T17:00:00Z"),
+      fetchResy: async () => [{ ...baseRestaurant, id: "resy:2", name: "LA Test Restaurant", sourceIds: { resy: 2 } }],
+      fetchInKind: async () => []
+    });
+
+    const nycCache = JSON.parse(await fs.readFile(cachePath(dir, "nyc"), "utf8")) as { restaurants: Restaurant[] };
+    const laCache = JSON.parse(await fs.readFile(cachePath(dir, "la"), "utf8")) as { restaurants: Restaurant[] };
+
+    expect(nycCache.restaurants[0].name).toBe("Test Restaurant");
+    expect(laCache.restaurants[0].name).toBe("LA Test Restaurant");
+  });
+
   test("serves stale cache if both upstreams fail", async () => {
     const config = await tempConfig();
     await loadRestaurants(config, {

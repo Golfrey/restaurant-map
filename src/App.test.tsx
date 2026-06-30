@@ -105,6 +105,37 @@ test("renders map data and source links", async () => {
   expect(screen.queryByRole("button", { name: /Le Gratin/i })).not.toBeInTheDocument();
 });
 
+test("searches and switches supported cities", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ...restaurantResponse("LA Spot", "resy:20"),
+        city: "la" as const
+      })
+    });
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  await userEvent.type(screen.getByLabelText("Search cities"), "los");
+  expect(screen.getByRole("button", { name: /Los Angeles/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Chicago/i })).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: /Los Angeles/i }));
+  await waitFor(() => expect(screen.getByRole("heading", { name: "LA Spot" })).toBeInTheDocument());
+
+  expect(screen.getByRole("heading", { name: "Los Angeles Restaurant Map" })).toBeInTheDocument();
+  expect(String(fetchMock.mock.calls[0][0])).toContain("city=nyc");
+  expect(String(fetchMock.mock.calls[1][0])).toContain("city=la");
+});
+
 test("does not let a slower stale load overwrite a newer refresh", async () => {
   const initial = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
   const refresh = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapPin, RefreshCw, Search, Utensils } from "lucide-react";
+import { defaultCityCode, getCity, supportedCities, type CityCode } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
+import { CitySelector } from "./components/app/CitySelector";
 import { RestaurantDetails } from "./components/app/RestaurantDetails";
 import { RestaurantList } from "./components/app/RestaurantList";
 import { SidebarSection } from "./components/app/SidebarSection";
@@ -17,7 +19,9 @@ import { filterRestaurants, topTags, type SourceFilter } from "./appUtils";
 import { MapView } from "./MapView";
 
 export default function App() {
-  const { data, error, loading, load } = useRestaurantData();
+  const [cityCode, setCityCode] = useState<CityCode>(defaultCityCode);
+  const selectedCity = useMemo(() => getCity(cityCode), [cityCode]);
+  const { data, error, loading, load } = useRestaurantData(cityCode);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<SourceFilter>("all");
   const [theme, setTheme] = useTheme();
@@ -26,8 +30,13 @@ export default function App() {
 
   useEffect(() => {
     if (!data) return;
-    setSelectedId((current) => current ?? data.restaurants[0]?.id);
+    setSelectedId(data.restaurants[0]?.id);
   }, [data]);
+
+  useEffect(() => {
+    setSelectedTags([]);
+    setSelectedId(undefined);
+  }, [cityCode]);
 
   const tagOptions = useMemo(() => topTags(data?.restaurants ?? []), [data]);
   const restaurants = useMemo(
@@ -54,7 +63,7 @@ export default function App() {
             <MapPin className="size-4" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold leading-none">NYC Restaurant Map</h1>
+            <h1 className="truncate text-sm font-semibold leading-none">{selectedCity.name} Restaurant Map</h1>
             <p className="mt-1 truncate text-xs text-muted-foreground">Resy + inKind</p>
           </div>
         </div>
@@ -75,6 +84,10 @@ export default function App() {
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(360px,400px)_1fr] max-md:grid-cols-1">
         <aside className="flex min-h-0 flex-col border-r bg-background max-md:max-h-[58vh] max-md:border-b max-md:border-r-0">
           <div className="grid shrink-0 gap-4 p-4">
+            <SidebarSection title="City">
+              <CitySelector cities={supportedCities} value={cityCode} onChange={setCityCode} />
+            </SidebarSection>
+
             <StatsStrip data={data} />
 
             <SidebarSection title="Search">
@@ -140,7 +153,13 @@ export default function App() {
         </aside>
 
         <section className="relative min-h-0 min-w-0 bg-muted max-md:h-[60vh]">
-          <MapView restaurants={restaurants} selectedId={selectedRestaurant?.id} mapTone={mapTone} onSelect={selectRestaurant} />
+          <MapView
+            restaurants={restaurants}
+            selectedId={selectedRestaurant?.id}
+            mapTone={mapTone}
+            cityCenter={selectedCity.center}
+            onSelect={selectRestaurant}
+          />
           <RestaurantDetails restaurant={selectedRestaurant} />
         </section>
       </div>

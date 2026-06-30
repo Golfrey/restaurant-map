@@ -9,6 +9,7 @@ import resyFixture from "./fixtures/resy-search.json";
 const city: CityConfig = {
   code: "nyc",
   name: "New York City",
+  state: "NY",
   center: { latitude: 40.7128, longitude: -74.006 },
   radiusMiles: 15
 };

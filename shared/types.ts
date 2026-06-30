@@ -1,3 +1,5 @@
+import type { CityCode } from "./cities";
+
 export type RestaurantSource = "resy" | "inkind" | "both";
 
 export interface RestaurantAddress {
@@ -39,7 +41,7 @@ export interface Restaurant {
 }
 
 export interface RestaurantResponse {
-  city: "nyc";
+  city: CityCode;
   generatedAt: string;
   cacheTtlHours: number;
   restaurants: Restaurant[];

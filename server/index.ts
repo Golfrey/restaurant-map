@@ -1,7 +1,7 @@
 import express from "express";
 import fs from "node:fs";
 import path from "node:path";
-import { getConfig } from "./config";
+import { defaultCityCode, getConfig, normalizeCityCode, supportedCities } from "./config";
 import { cachePath, readCache } from "./cache";
 import { loadRestaurants } from "./repository";
 
@@ -10,29 +10,42 @@ export function createApp() {
   const config = getConfig();
   const distPath = path.resolve(process.cwd(), "dist");
 
-  app.get("/api/status", async (_req, res) => {
-    const cached = await readCache(config.cacheDir, config.city.code);
+  app.get("/api/cities", (_req, res) => {
+    res.json({
+      defaultCity: defaultCityCode,
+      cities: supportedCities
+    });
+  });
+
+  app.get("/api/status", async (req, res) => {
+    const cityCode = normalizeCityCode(String(req.query.city ?? config.city.code)) ?? config.city.code;
+    const cityConfig = getConfig(cityCode);
+    const cached = await readCache(cityConfig.cacheDir, cityConfig.city.code);
     res.json({
       ok: true,
-      city: config.city,
+      city: cityConfig.city,
       cache: {
-        path: cachePath(config.cacheDir, config.city.code),
+        path: cachePath(cityConfig.cacheDir, cityConfig.city.code),
         generatedAt: cached?.generatedAt ?? null,
-        ttlHours: config.cacheTtlHours
+        ttlHours: cityConfig.cacheTtlHours
       }
     });
   });
 
   app.get("/api/restaurants", async (req, res) => {
-    const city = String(req.query.city ?? "nyc").toLowerCase();
-    if (city !== "nyc") {
-      res.status(400).json({ message: "Only city=nyc is supported in v1." });
+    const cityParam = String(req.query.city ?? defaultCityCode);
+    const cityCode = normalizeCityCode(cityParam);
+    if (!cityCode) {
+      res.status(400).json({
+        message: `Unsupported city "${cityParam}". Supported cities: ${supportedCities.map((city) => city.code).join(", ")}.`
+      });
       return;
     }
+    const cityConfig = getConfig(cityCode);
 
     try {
       const refresh = String(req.query.refresh ?? "false").toLowerCase() === "true";
-      const payload = await loadRestaurants(config, { refresh });
+      const payload = await loadRestaurants(cityConfig, { refresh });
       res.json(payload);
     } catch (error) {
       res.status(502).json({

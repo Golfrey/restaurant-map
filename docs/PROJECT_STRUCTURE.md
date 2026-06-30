@@ -47,7 +47,7 @@ Each upstream should have one adapter under `server/sources/` and one normalizer
 
 ## Shared Contracts
 
-`shared/types.ts` is the contract between server and client. Keep API response changes backward-compatible unless the frontend and tests are updated in the same change. The `/api/restaurants` response is produced in `server/repository.ts` and consumed through `src/api.ts`.
+`shared/types.ts` is the response contract between server and client, and `shared/cities.ts` is the supported city catalog used by both sides. Keep API response changes backward-compatible unless the frontend and tests are updated in the same change. The `/api/restaurants` response is produced in `server/repository.ts` and consumed through `src/api.ts`.
 
 ## Testing
 

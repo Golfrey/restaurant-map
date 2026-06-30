@@ -1,15 +1,16 @@
 import path from "node:path";
 import "dotenv/config";
+import {
+  defaultCityCode,
+  getCity,
+  normalizeCityCode,
+  supportedCities,
+  type CityCode,
+  type CityConfig
+} from "../shared/cities";
 
-export interface CityConfig {
-  code: "nyc";
-  name: string;
-  center: {
-    latitude: number;
-    longitude: number;
-  };
-  radiusMiles: number;
-}
+export { defaultCityCode, getCity, normalizeCityCode, supportedCities };
+export type { CityCode, CityConfig };
 
 export interface AppConfig {
   port: number;
@@ -34,17 +35,25 @@ function numberFromEnv(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function cityCenterFromEnv(): { latitude: number; longitude: number } {
+function cityCodeFromEnv(): CityCode {
+  return normalizeCityCode(process.env.CITY ?? process.env.DEFAULT_CITY) ?? defaultCityCode;
+}
+
+function cityCenterFromEnv(fallback: CityConfig["center"]): CityConfig["center"] {
   const raw = process.env.CITY_CENTER;
-  if (!raw) return { latitude: 40.7128, longitude: -74.006 };
+  if (!raw) return fallback;
   const [lat, lng] = raw.split(",").map((value) => Number(value.trim()));
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return { latitude: 40.7128, longitude: -74.006 };
+    return fallback;
   }
   return { latitude: lat, longitude: lng };
 }
 
-export function getConfig(): AppConfig {
+export function getConfig(cityCode: CityCode = cityCodeFromEnv()): AppConfig {
+  const envCityCode = cityCodeFromEnv();
+  const city = getCity(cityCode);
+  const useCityEnvOverrides = cityCode === envCityCode;
+
   return {
     port: numberFromEnv("PORT", 8787),
     cacheTtlHours: numberFromEnv("CACHE_TTL_HOURS", 12),
@@ -55,10 +64,9 @@ export function getConfig(): AppConfig {
     resyPerPage: numberFromEnv("RESY_PER_PAGE", 100),
     upstreamTimeoutMs: numberFromEnv("UPSTREAM_TIMEOUT_MS", 15_000),
     city: {
-      code: "nyc",
-      name: "New York City",
-      center: cityCenterFromEnv(),
-      radiusMiles: numberFromEnv("CITY_RADIUS_MILES", 15)
+      ...city,
+      center: useCityEnvOverrides ? cityCenterFromEnv(city.center) : city.center,
+      radiusMiles: useCityEnvOverrides ? numberFromEnv("CITY_RADIUS_MILES", city.radiusMiles) : city.radiusMiles
     }
   };
 }

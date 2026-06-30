@@ -1,6 +1,6 @@
-# Resy + inKind NYC Map
+# Resy + inKind Restaurant Map
 
-Local web app that combines NYC restaurants from Resy and inKind into one cached map.
+Local web app that combines restaurants from Resy and inKind into one cached map, with searchable city and restaurant filtering.
 
 The UI uses shadcn-style local components on Tailwind CSS. The map uses MapLibre GL with Stadia-hosted Stamen Toner vector styles. `localhost` works without Stadia auth; set a Stadia API key or domain auth for deployed use.
 
@@ -22,7 +22,10 @@ The frontend calls the local backend at `/api/restaurants`; the backend fetches 
 ## API
 
 - `GET /api/status`
+- `GET /api/cities`
 - `GET /api/restaurants?city=nyc&refresh=false`
+
+Supported city codes are defined in `shared/cities.ts`: `nyc`, `la`, `chi`, `sf`, `dc`, `mia`, `bos`, `phl`, `atl`, `aus`, `dal`, `den`, `sea`, and `lv`.
 
 ## Configuration
 
@@ -32,8 +35,9 @@ Copy `.env.example` to `.env` or export variables directly:
 - `CACHE_TTL_HOURS`
 - `RESY_API_KEY`
 - `RESY_USER_AGENT`
-- `CITY_CENTER`
-- `CITY_RADIUS_MILES`
+- `CITY` or `DEFAULT_CITY` defaults to `nyc`
+- `CITY_CENTER` overrides the selected `CITY`/`DEFAULT_CITY` center
+- `CITY_RADIUS_MILES` overrides the selected `CITY`/`DEFAULT_CITY` radius
 - `RESY_MAX_PAGES`
 - `RESY_PER_PAGE`
 - `UPSTREAM_TIMEOUT_MS`
