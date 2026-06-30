@@ -3,13 +3,11 @@ import type { RestaurantResponse } from "../shared/types";
 
 interface FetchRestaurantsOptions {
   city: CityCode;
-  refresh?: boolean;
   signal?: AbortSignal;
 }
 
-export async function fetchRestaurants({ city, refresh = false, signal }: FetchRestaurantsOptions): Promise<RestaurantResponse> {
+export async function fetchRestaurants({ city, signal }: FetchRestaurantsOptions): Promise<RestaurantResponse> {
   const params = new URLSearchParams({ city });
-  if (refresh) params.set("refresh", "true");
 
   const response = await fetch(`/api/restaurants?${params.toString()}`, { signal });
   if (!response.ok) {

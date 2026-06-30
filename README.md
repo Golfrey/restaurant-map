@@ -18,12 +18,14 @@ The frontend calls the local backend at `/api/restaurants`; the backend fetches 
 ## Docs
 
 - [Project structure](docs/PROJECT_STRUCTURE.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
 ## API
 
-- `GET /api/status`
+- `GET /api/status?city=nyc`
 - `GET /api/cities`
-- `GET /api/restaurants?city=nyc&refresh=false`
+- `GET /api/restaurants?city=nyc`
+- `GET /api/cron/refresh` on Vercel only, protected by `CRON_SECRET`
 
 Supported city codes are defined in `shared/cities.ts`: `nyc`, `la`, `chi`, `sf`, `dc`, `mia`, `bos`, `phl`, `atl`, `aus`, `dal`, `den`, `sea`, and `lv`.
 
@@ -41,7 +43,12 @@ Copy `.env.example` to `.env` or export variables directly:
 - `RESY_MAX_PAGES`
 - `RESY_PER_PAGE`
 - `UPSTREAM_TIMEOUT_MS`
+- `UPSTASH_REDIS_REST_URL` for Vercel's durable cache
+- `UPSTASH_REDIS_REST_TOKEN` for Vercel's durable cache
+- `CRON_SECRET` for Vercel's daily refresh endpoint
 - `VITE_STADIA_MAP_STYLE` defaults to Stamen Toner Lite/Dark. Use `{tone}` so the global light/dark theme can swap map styles.
 - `VITE_STADIA_MAPS_API_KEY`
+
+See [Deployment](docs/DEPLOYMENT.md) for the Vercel and Upstash setup.
 
 The Resy and inKind endpoints are unofficial public web surfaces and may change.

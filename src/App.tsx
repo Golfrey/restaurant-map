@@ -75,9 +75,9 @@ export default function App() {
             <span>{restaurants.length.toLocaleString()} shown</span>
           </div>
           <ThemeToggle theme={theme} onToggle={() => setTheme((current) => (current === "dark" ? "light" : "dark"))} />
-          <Button variant="outline" size="sm" onClick={() => void load(true)} type="button" title="Refresh data">
+          <Button variant="outline" size="sm" onClick={() => void load()} type="button" title="Reload cached data">
             <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-            <span className="max-sm:hidden">Refresh</span>
+            <span className="max-sm:hidden">Reload</span>
           </Button>
         </div>
       </header>

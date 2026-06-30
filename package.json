@@ -11,6 +11,7 @@
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite --host 127.0.0.1",
     "test": "vitest run",
+    "check:payload-size": "tsx scripts/check-payload-size.ts",
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts"
   },

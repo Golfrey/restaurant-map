@@ -5,7 +5,9 @@ This project is a local-first TypeScript app with a Vite/React frontend and an E
 ## Top-Level Layout
 
 ```text
-server/            Express API, cache policy, third-party source adapters
+api/               Vercel serverless function entrypoints
+server/            Express API, Vercel handlers, cache policy, third-party source adapters
+scripts/           Operational checks
 shared/            Types shared by server and client
 src/               React app, frontend hooks, UI components, map helpers
 tests/             Backend-focused Vitest tests and source fixtures
@@ -34,9 +36,12 @@ Use `src/components/app/` for restaurant-map UI that is not meant to be a generi
 
 ```text
 server/index.ts             Express app and HTTP routes
+server/apiHandlers.ts       Vercel HTTP handlers
 server/config.ts            Environment parsing and defaults
 server/repository.ts        Cache/read-through orchestration and source failure policy
 server/cache.ts             Cache file read/write/freshness helpers
+server/upstashCache.ts      Upstash Redis cache adapter for Vercel
+server/cronRefresh.ts       Daily multi-city refresh orchestration
 server/sources/             Third-party HTTP clients
 server/normalizers/         Third-party payload types and source-specific normalization
 server/dedupe.ts            Cross-source restaurant matching and merge logic
@@ -47,7 +52,7 @@ Each upstream should have one adapter under `server/sources/` and one normalizer
 
 ## Shared Contracts
 
-`shared/types.ts` is the response contract between server and client, and `shared/cities.ts` is the supported city catalog used by both sides. Keep API response changes backward-compatible unless the frontend and tests are updated in the same change. The `/api/restaurants` response is produced in `server/repository.ts` and consumed through `src/api.ts`.
+`shared/types.ts` is the response contract between server and client, and `shared/cities.ts` is the supported city catalog used by both sides. Keep API response changes backward-compatible unless the frontend and tests are updated in the same change. Local `/api/restaurants` responses are produced through `server/repository.ts`; Vercel `/api/restaurants` responses are read from Upstash through `server/apiHandlers.ts`.
 
 ## Testing
 
@@ -55,3 +60,4 @@ Each upstream should have one adapter under `server/sources/` and one normalizer
 - Backend unit tests live in `tests/`.
 - Third-party fixture data lives in `tests/fixtures/`.
 - Run `npm test` for the full Vitest suite and `npm run build` for type checking plus production bundling.
+- Run `npm run check:payload-size -- --refresh` before deployment-sensitive source or city-radius changes.

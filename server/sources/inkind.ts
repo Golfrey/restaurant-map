@@ -8,7 +8,7 @@ import {
 } from "../normalizers";
 import { fetchJson, requireArray } from "./http";
 
-interface InKindMapResponse {
+export interface InKindMapResponse {
   tags?: InKindTag[];
   locations?: InKindLocation[];
   brands?: InKindBrand[];
@@ -16,8 +16,8 @@ interface InKindMapResponse {
 
 const inKindMapUrl = "https://app.inkind.com/api/v5/map";
 
-export async function fetchInKindRestaurants(config: AppConfig): Promise<Restaurant[]> {
-  const payload = await fetchJson<InKindMapResponse>(
+export async function fetchInKindMap(config: AppConfig): Promise<InKindMapResponse> {
+  return fetchJson<InKindMapResponse>(
     inKindMapUrl,
     {
       headers: {
@@ -29,7 +29,9 @@ export async function fetchInKindRestaurants(config: AppConfig): Promise<Restaur
       timeoutMs: config.upstreamTimeoutMs
     }
   );
+}
 
+export function normalizeInKindRestaurants(payload: InKindMapResponse, config: AppConfig): Restaurant[] {
   const tags = requireArray<InKindTag>(payload.tags, "inKind", "tags");
   const brands = requireArray<InKindBrand>(payload.brands, "inKind", "brands");
   const locations = requireArray<InKindLocation>(payload.locations, "inKind", "locations");
@@ -47,4 +49,8 @@ export async function fetchInKindRestaurants(config: AppConfig): Promise<Restaur
   return locations
     .map((location) => normalizeInKindLocation(location, brandsById.get(location.brand_id ?? -1), tagsById, config.city))
     .filter((restaurant): restaurant is Restaurant => Boolean(restaurant));
+}
+
+export async function fetchInKindRestaurants(config: AppConfig): Promise<Restaurant[]> {
+  return normalizeInKindRestaurants(await fetchInKindMap(config), config);
 }

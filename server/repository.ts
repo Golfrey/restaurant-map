@@ -14,6 +14,12 @@ export interface LoadOptions {
 
 const inFlightLoads = new Map<string, Promise<RestaurantResponse>>();
 
+export class UpstreamLoadError extends Error {
+  constructor(public readonly warnings: string[]) {
+    super(warnings.join("; "));
+  }
+}
+
 function sourceCounts(restaurants: Restaurant[]): RestaurantResponse["sourceCounts"] {
   return {
     resy: restaurants.filter((restaurant) => restaurant.source === "resy").length,
@@ -23,11 +29,7 @@ function sourceCounts(restaurants: Restaurant[]): RestaurantResponse["sourceCoun
   };
 }
 
-async function loadRestaurantsFromSources(
-  config: AppConfig,
-  options: LoadOptions,
-  cached: RestaurantResponse | null
-): Promise<RestaurantResponse> {
+export async function buildRestaurantPayload(config: AppConfig, options: LoadOptions = {}): Promise<RestaurantResponse> {
   const resyFetcher = options.fetchResy ?? fetchResyRestaurants;
   const inKindFetcher = options.fetchInKind ?? fetchInKindRestaurants;
 
@@ -45,12 +47,7 @@ async function loadRestaurantsFromSources(
 
   const bothFailed = resyResult.status === "rejected" && inKindResult.status === "rejected";
   if (bothFailed) {
-    if (cached) return { ...cached, cached: true, warnings };
-    throw new Error(warnings.join("; "));
-  }
-
-  if (warnings.length && cached) {
-    return { ...cached, cached: true, warnings };
+    throw new UpstreamLoadError(warnings);
   }
 
   const resy = resyResult.status === "fulfilled" ? resyResult.value : [];
@@ -65,6 +62,32 @@ async function loadRestaurantsFromSources(
     sourceCounts: sourceCounts(restaurants),
     ...(warnings.length ? { warnings } : {})
   };
+
+  return payload;
+}
+
+function warningsFromError(error: unknown): string[] {
+  if (error instanceof UpstreamLoadError) return error.warnings;
+  return [error instanceof Error ? error.message : String(error)];
+}
+
+async function loadRestaurantsFromSources(
+  config: AppConfig,
+  options: LoadOptions,
+  cached: RestaurantResponse | null
+): Promise<RestaurantResponse> {
+  let payload: RestaurantResponse;
+  try {
+    payload = await buildRestaurantPayload(config, options);
+  } catch (error) {
+    if (cached) return { ...cached, cached: true, warnings: warningsFromError(error) };
+    throw error;
+  }
+
+  const warnings = payload.warnings ?? [];
+  if (warnings.length && cached) {
+    return { ...cached, cached: true, warnings };
+  }
 
   if (!warnings.length) {
     await writeCache(config.cacheDir, config.city.code, payload);

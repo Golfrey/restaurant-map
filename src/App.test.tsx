@@ -136,15 +136,16 @@ test("searches and switches supported cities", async () => {
   expect(String(fetchMock.mock.calls[1][0])).toContain("city=la");
 });
 
-test("does not let a slower stale load overwrite a newer refresh", async () => {
+test("does not let a slower stale load overwrite a newer reload", async () => {
   const initial = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
-  const refresh = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
-  vi.stubGlobal("fetch", vi.fn().mockReturnValueOnce(initial.promise).mockReturnValueOnce(refresh.promise));
+  const reload = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
+  const fetchMock = vi.fn().mockReturnValueOnce(initial.promise).mockReturnValueOnce(reload.promise);
+  vi.stubGlobal("fetch", fetchMock);
 
   render(<App />);
-  await userEvent.click(screen.getByRole("button", { name: /Refresh/i }));
+  await userEvent.click(screen.getByRole("button", { name: /Reload/i }));
 
-  refresh.resolve({
+  reload.resolve({
     ok: true,
     json: async () => restaurantResponse("Refreshed Result", "resy:20")
   });
@@ -158,6 +159,7 @@ test("does not let a slower stale load overwrite a newer refresh", async () => {
 
   expect(screen.getByRole("heading", { name: "Refreshed Result" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Stale Result" })).not.toBeInTheDocument();
+  expect(String(fetchMock.mock.calls[1][0])).not.toContain("refresh=true");
 });
 
 test("does not render unsafe external source urls", async () => {

@@ -10,7 +10,7 @@ export function useRestaurantData(city: CityCode) {
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const load = useCallback(async (refresh = false) => {
+  const load = useCallback(async () => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     abortRef.current?.abort();
@@ -20,7 +20,7 @@ export function useRestaurantData(city: CityCode) {
     setLoading(true);
     setError(null);
     try {
-      const payload = await fetchRestaurants({ city, refresh, signal: controller.signal });
+      const payload = await fetchRestaurants({ city, signal: controller.signal });
       if (requestId !== requestIdRef.current) return;
       setData(payload);
     } catch (err) {
@@ -36,7 +36,7 @@ export function useRestaurantData(city: CityCode) {
 
   useEffect(() => {
     setData(null);
-    void load(false);
+    void load();
     return () => {
       requestIdRef.current += 1;
       abortRef.current?.abort();
