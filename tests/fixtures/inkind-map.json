@@ -1,0 +1,42 @@
+{
+  "tags": [
+    { "id": 9, "slug": "american_fare", "name": "American Fare", "category": "Cuisine Type" },
+    { "id": 12, "slug": "french", "name": "French", "category": "Cuisine Type" },
+    { "id": 32, "slug": "newly_added", "name": "Newly Added", "category": "Uncategorized" }
+  ],
+  "brands": [
+    {
+      "brand_slug": "le-gratin",
+      "name": "Le Gratin",
+      "brand_id": 12,
+      "check_average": "medium",
+      "branding": {
+        "discoverable": true,
+        "hero_image": { "value": "v1/example.png" }
+      },
+      "tags": [{ "id": 12, "featured": true }]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": 44,
+      "name": "Le Gratin",
+      "brand_slug": "le-gratin",
+      "brand_id": 12,
+      "location": {
+        "address": "5 Beekman St",
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10038",
+        "country": "United States",
+        "latitude": 40.7116,
+        "longitude": -74.00686
+      },
+      "purchase_page_link": "https://le-gratin.inkind.com/",
+      "rating": 4.6,
+      "review_count": 50,
+      "status": "Open",
+      "tags": [{ "id": 32, "featured": true }]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "search": {
+    "hits": [
+      {
+        "name": "Le Gratin",
+        "id": { "resy": 60029 },
+        "_geoloc": { "lat": 40.711596195436, "lng": -74.0068499597795 },
+        "location": { "url_slug": "new-york-ny", "name": "New York", "code": "ny", "id": 1 },
+        "locality": "New York",
+        "region": "NY",
+        "country": "United States",
+        "neighborhood": "Lower Manhattan",
+        "cuisine": ["French"],
+        "url_slug": "le-gratin",
+        "price_range_id": 2,
+        "rating": { "count": 6999, "average": 4.63752 },
+        "images": ["https://image.resy.com/example.jpg"]
+      }
+    ]
+  }
+}
