@@ -17,6 +17,7 @@ import {
   sourceId,
   type MapTone
 } from "./map/restaurantMap";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 interface MapViewProps {
   restaurants: Restaurant[];
@@ -31,6 +32,35 @@ interface MapViewProps {
 }
 
 const restaurantFocusZoom = 16;
+
+function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
+  const run = () => {
+    addRestaurantLayers(map);
+    callback();
+  };
+
+  if (map.getSource(sourceId)) {
+    run();
+    return () => undefined;
+  }
+
+  let active = true;
+  const cleanup = () => {
+    active = false;
+    map.off("load", onMapReady);
+    map.off("style.load", onMapReady);
+  };
+  const onMapReady = () => {
+    if (!active) return;
+    cleanup();
+    run();
+  };
+
+  map.on("load", onMapReady);
+  map.on("style.load", onMapReady);
+
+  return cleanup;
+}
 
 export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCenter, onSelect }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -151,7 +181,6 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
     if (!map) return;
 
     const syncData = () => {
-      addRestaurantLayers(map);
       (map.getSource(sourceId) as GeoJSONSource).setData(data);
       map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
 
@@ -181,11 +210,7 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
       });
     };
 
-    if (map.loaded()) {
-      syncData();
-    } else {
-      map.once("load", syncData);
-    }
+    return runWithRestaurantLayers(map, syncData);
   }, [cityCenter, data, restaurants]);
 
   useEffect(() => {
@@ -222,15 +247,7 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
         .addTo(map);
     };
 
-    if (map.loaded()) {
-      focusRestaurant();
-    } else {
-      map.once("load", focusRestaurant);
-    }
-
-    return () => {
-      map.off("load", focusRestaurant);
-    };
+    focusRestaurant();
   }, [focusRequest]);
 
   return <div ref={containerRef} className="map-canvas" data-testid="map-canvas" />;

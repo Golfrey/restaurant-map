@@ -23,6 +23,7 @@ export default function App() {
   const [cityCode, setCityCode] = useState<CityCode>(defaultCityCode);
   const selectedCity = useMemo(() => getCity(cityCode), [cityCode]);
   const { data, error, loading, load } = useRestaurantData(cityCode);
+  const cityData = data?.city === cityCode ? data : null;
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<SourceFilter>("all");
   const [theme, setTheme] = useTheme();
@@ -32,9 +33,9 @@ export default function App() {
   const [mapFocusRequest, setMapFocusRequest] = useState<{ id: string; nonce: number }>();
 
   useEffect(() => {
-    if (!data) return;
-    setSelectedId(data.restaurants[0]?.id);
-  }, [data]);
+    if (!cityData) return;
+    setSelectedId(cityData.restaurants[0]?.id);
+  }, [cityData]);
 
   useEffect(() => {
     setSelectedTags([]);
@@ -42,14 +43,14 @@ export default function App() {
     setMapFocusRequest(undefined);
   }, [cityCode]);
 
-  const tagOptions = useMemo(() => topTags(data?.restaurants ?? []), [data]);
+  const tagOptions = useMemo(() => topTags(cityData?.restaurants ?? []), [cityData]);
   const restaurants = useMemo(
-    () => filterRestaurants(data?.restaurants ?? [], query, source, selectedTags),
-    [data, query, source, selectedTags]
+    () => filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags),
+    [cityData, query, source, selectedTags]
   );
   const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === selectedId) ?? restaurants[0];
   const mapTone = theme === "dark" ? "dark" : "lite";
-  const generatedLabel = data?.generatedAt ? new Date(data.generatedAt).toLocaleString() : "Waiting for data";
+  const generatedLabel = cityData?.generatedAt ? new Date(cityData.generatedAt).toLocaleString() : "Waiting for data";
 
   const selectRestaurant = useCallback((restaurant: Restaurant) => {
     setSelectedId(restaurant.id);
@@ -94,7 +95,7 @@ export default function App() {
               <CitySelector cities={supportedCities} value={cityCode} onChange={setCityCode} />
             </SidebarSection>
 
-            <StatsStrip data={data} />
+            <StatsStrip data={cityData} />
 
             <SidebarSection title="Search">
               <div className="relative">
@@ -130,10 +131,10 @@ export default function App() {
             </SidebarSection>
           </div>
 
-          {data?.warnings?.length ? (
+          {cityData?.warnings?.length ? (
             <Card className="mx-4 mb-3 border-yellow-300 bg-yellow-50 text-yellow-950 shadow-none dark:border-yellow-500/40 dark:bg-yellow-500/10 dark:text-yellow-100">
               <CardContent className="grid gap-1 p-3 text-sm">
-                {data.warnings.map((warning) => (
+                {cityData.warnings.map((warning) => (
                   <p key={warning}>{warning}</p>
                 ))}
               </CardContent>
@@ -154,7 +155,7 @@ export default function App() {
           <RestaurantList restaurants={restaurants} selectedId={selectedRestaurant?.id} onSelect={selectRestaurant} />
 
           <footer className="shrink-0 border-t px-4 py-3 text-xs text-muted-foreground">
-            {data?.cached ? "Cached data" : "Fresh data"} / {generatedLabel}
+            {cityData?.cached ? "Cached data" : "Fresh data"} / {generatedLabel}
           </footer>
         </aside>
 

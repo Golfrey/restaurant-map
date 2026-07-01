@@ -5,8 +5,13 @@ import type { RestaurantResponse } from "../shared/types";
 import App from "./App";
 
 vi.mock("./MapView", () => ({
-  MapView: ({ restaurants, onSelect, focusRequest }: any) => (
-    <div data-testid="map" data-focus-id={focusRequest?.id ?? ""}>
+  MapView: ({ restaurants, onSelect, focusRequest, cityCenter }: any) => (
+    <div
+      data-testid="map"
+      data-focus-id={focusRequest?.id ?? ""}
+      data-center={`${cityCenter.latitude},${cityCenter.longitude}`}
+      data-restaurants={restaurants.map((restaurant: any) => restaurant.name).join("|")}
+    >
       {restaurants.map((restaurant: any) => (
         <button key={restaurant.id} type="button" onClick={() => onSelect(restaurant)}>
           marker {restaurant.name}
@@ -153,6 +158,33 @@ test("searches and switches supported cities", async () => {
   expect(screen.getByRole("heading", { name: "Los Angeles Restaurant Map" })).toBeInTheDocument();
   expect(String(fetchMock.mock.calls[0][0])).toContain("city=nyc");
   expect(String(fetchMock.mock.calls[1][0])).toContain("city=la");
+});
+
+test("moves the map to the clicked city before new restaurant data resolves", async () => {
+  const laLoad = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
+  const fetchMock = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => payload
+  }).mockReturnValueOnce(laLoad.promise);
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole("button", { name: /Los Angeles/i }));
+
+  expect(screen.getByRole("heading", { name: "Los Angeles Restaurant Map" })).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-center", "34.0522,-118.2437");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "");
+
+  laLoad.resolve({
+    ok: true,
+    json: async () => ({
+      ...restaurantResponse("LA Spot", "resy:20"),
+      city: "la" as const
+    })
+  });
+  await waitFor(() => expect(screen.getByRole("heading", { name: "LA Spot" })).toBeInTheDocument());
 });
 
 test("does not let a slower stale load overwrite a newer reload", async () => {
