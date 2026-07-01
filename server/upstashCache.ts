@@ -1,5 +1,5 @@
-import type { CityCode } from "../shared/cities";
-import type { RestaurantResponse } from "../shared/types";
+import type { CityCode } from "../shared/cities.js";
+import type { RestaurantResponse } from "../shared/types.js";
 
 export interface RestaurantCacheMetadata {
   city: CityCode;

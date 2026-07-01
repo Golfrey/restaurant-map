@@ -1,4 +1,4 @@
-import { handleCronRefresh, type ApiRequest, type ApiResponse } from "../../server/apiHandlers";
+import { handleCronRefresh, type ApiRequest, type ApiResponse } from "../../server/apiHandlers.js";
 
 export const config = {
   maxDuration: 300

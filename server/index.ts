@@ -1,9 +1,9 @@
 import express from "express";
 import fs from "node:fs";
 import path from "node:path";
-import { defaultCityCode, getConfig, normalizeCityCode, supportedCities } from "./config";
-import { cachePath, readCache } from "./cache";
-import { loadRestaurants } from "./repository";
+import { defaultCityCode, getConfig, normalizeCityCode, supportedCities } from "./config.js";
+import { cachePath, readCache } from "./cache.js";
+import { loadRestaurants } from "./repository.js";
 
 export function createApp() {
   const app = express();

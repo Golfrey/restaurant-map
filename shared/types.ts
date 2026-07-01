@@ -1,4 +1,4 @@
-import type { CityCode } from "./cities";
+import type { CityCode } from "./cities.js";
 
 export type RestaurantSource = "resy" | "inkind" | "both";
 

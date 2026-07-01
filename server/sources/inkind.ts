@@ -1,7 +1,7 @@
-import type { Restaurant } from "../../shared/types";
-import type { AppConfig } from "../config";
-import { normalizeInKindLocation, type InKindBrand, type InKindLocation, type InKindTag } from "../normalizers";
-import { fetchJson, requireArray } from "./http";
+import type { Restaurant } from "../../shared/types.js";
+import type { AppConfig } from "../config.js";
+import { normalizeInKindLocation, type InKindBrand, type InKindLocation, type InKindTag } from "../normalizers.js";
+import { fetchJson, requireArray } from "./http.js";
 
 export interface InKindMapResponse {
   tags?: InKindTag[];

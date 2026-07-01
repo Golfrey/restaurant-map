@@ -1,10 +1,10 @@
-import type { Restaurant, RestaurantResponse } from "../shared/types";
-import { sanitizeRestaurantLabels } from "../shared/labels";
-import type { AppConfig } from "./config";
-import { isCacheFresh, readCache, writeCache } from "./cache";
-import { dedupeRestaurants } from "./dedupe";
-import { fetchInKindRestaurants } from "./sources/inkind";
-import { fetchResyRestaurants } from "./sources/resy";
+import type { Restaurant, RestaurantResponse } from "../shared/types.js";
+import { sanitizeRestaurantLabels } from "../shared/labels.js";
+import type { AppConfig } from "./config.js";
+import { isCacheFresh, readCache, writeCache } from "./cache.js";
+import { dedupeRestaurants } from "./dedupe.js";
+import { fetchInKindRestaurants } from "./sources/inkind.js";
+import { fetchResyRestaurants } from "./sources/resy.js";
 
 export interface LoadOptions {
   refresh?: boolean;

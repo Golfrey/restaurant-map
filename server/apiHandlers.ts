@@ -1,7 +1,7 @@
-import { isCacheFresh } from "./cache";
-import { refreshAllCities, type CronRefreshSummary } from "./cronRefresh";
-import { defaultCityCode, getConfig, normalizeCityCode, supportedCities, type CityCode } from "./config";
-import { createUpstashCacheFromEnv, type RestaurantCacheStore } from "./upstashCache";
+import { isCacheFresh } from "./cache.js";
+import { refreshAllCities, type CronRefreshSummary } from "./cronRefresh.js";
+import { defaultCityCode, getConfig, normalizeCityCode, supportedCities, type CityCode } from "./config.js";
+import { createUpstashCacheFromEnv, type RestaurantCacheStore } from "./upstashCache.js";
 
 export interface ApiRequest {
   method?: string;

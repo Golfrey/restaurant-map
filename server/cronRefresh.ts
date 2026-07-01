@@ -1,9 +1,9 @@
-import type { CityCode } from "../shared/cities";
-import type { RestaurantResponse } from "../shared/types";
-import { defaultCityCode, getConfig, supportedCities, type AppConfig } from "./config";
-import { buildRestaurantPayload } from "./repository";
-import { fetchInKindMap, normalizeInKindRestaurants, type InKindMapResponse } from "./sources/inkind";
-import type { RestaurantCacheStore } from "./upstashCache";
+import type { CityCode } from "../shared/cities.js";
+import type { RestaurantResponse } from "../shared/types.js";
+import { defaultCityCode, getConfig, supportedCities, type AppConfig } from "./config.js";
+import { buildRestaurantPayload } from "./repository.js";
+import { fetchInKindMap, normalizeInKindRestaurants, type InKindMapResponse } from "./sources/inkind.js";
+import type { RestaurantCacheStore } from "./upstashCache.js";
 
 export interface CityRefreshResult {
   city: CityCode;

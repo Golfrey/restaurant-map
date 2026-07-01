@@ -1,4 +1,4 @@
-import type { Restaurant } from "./types";
+import type { Restaurant } from "./types.js";
 
 export function labelKey(value: string): string {
   return value.trim().toLowerCase();

@@ -7,7 +7,7 @@ import {
   supportedCities,
   type CityCode,
   type CityConfig
-} from "../shared/cities";
+} from "../shared/cities.js";
 
 export { defaultCityCode, getCity, normalizeCityCode, supportedCities };
 export type { CityCode, CityConfig };

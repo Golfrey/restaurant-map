@@ -1,3 +1,3 @@
-export { normalizeInKindLocation } from "./inkind";
-export { normalizeResyHit } from "./resy";
-export type { InKindBrand, InKindLocation, InKindTag, ResyVenueHit } from "./types";
+export { normalizeInKindLocation } from "./inkind.js";
+export { normalizeResyHit } from "./resy.js";
+export type { InKindBrand, InKindLocation, InKindTag, ResyVenueHit } from "./types.js";

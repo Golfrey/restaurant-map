@@ -1,8 +1,8 @@
-import type { Restaurant } from "../../shared/types";
-import type { CityConfig } from "../config";
-import { distanceMiles, withinRadius } from "../geo";
-import type { InKindBrand, InKindLocation, InKindTag } from "./types";
-import { cloudinaryUrl, compactStrings, priceFromInKind } from "./utils";
+import type { Restaurant } from "../../shared/types.js";
+import type { CityConfig } from "../config.js";
+import { distanceMiles, withinRadius } from "../geo.js";
+import type { InKindBrand, InKindLocation, InKindTag } from "./types.js";
+import { cloudinaryUrl, compactStrings, priceFromInKind } from "./utils.js";
 
 function isCuisineTag(tag: InKindTag): boolean {
   return tag.category?.toLowerCase() === "cuisine type";

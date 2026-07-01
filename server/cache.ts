@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { RestaurantResponse } from "../shared/types";
+import type { RestaurantResponse } from "../shared/types.js";
 
 export function cachePath(cacheDir: string, city: string): string {
   return path.join(cacheDir, `restaurants-${city}.json`);

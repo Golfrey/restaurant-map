@@ -1,8 +1,8 @@
-import type { Restaurant } from "../../shared/types";
-import type { CityConfig } from "../config";
-import { distanceMiles, withinRadius } from "../geo";
-import type { ResyVenueHit } from "./types";
-import { compactStrings, priceFromResy } from "./utils";
+import type { Restaurant } from "../../shared/types.js";
+import type { CityConfig } from "../config.js";
+import { distanceMiles, withinRadius } from "../geo.js";
+import type { ResyVenueHit } from "./types.js";
+import { compactStrings, priceFromResy } from "./utils.js";
 
 export function normalizeResyHit(hit: ResyVenueHit, city: CityConfig): Restaurant | null {
   const resyId = hit.id?.resy;

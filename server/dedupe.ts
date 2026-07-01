@@ -1,5 +1,5 @@
-import type { Restaurant } from "../shared/types";
-import { distanceMiles } from "./geo";
+import type { Restaurant } from "../shared/types.js";
+import { distanceMiles } from "./geo.js";
 
 const weakWords = new Set(["the", "restaurant", "bar", "cafe", "nyc", "new", "york"]);
 
