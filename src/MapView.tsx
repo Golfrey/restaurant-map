@@ -22,12 +22,18 @@ import "maplibre-gl/dist/maplibre-gl.css";
 interface MapViewProps {
   restaurants: Restaurant[];
   selectedId?: string;
+  focusRequest?: {
+    id: string;
+    nonce: number;
+  };
   mapTone: MapTone;
   cityCenter: CityCenter;
   onSelect: (restaurant: Restaurant) => void;
 }
 
-export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect }: MapViewProps) {
+const restaurantFocusZoom = 16;
+
+export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCenter, onSelect }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -62,9 +68,19 @@ export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect
     mapRef.current = map;
     styleToneRef.current = mapTone;
 
+    function openRestaurantPopup(restaurant: Restaurant, coordinates: [number, number]) {
+      popupRef.current?.remove();
+      popupRestaurantIdRef.current = restaurant.id;
+      popupRef.current = new maplibregl.Popup({ closeButton: false, offset: 14 })
+        .setLngLat(coordinates)
+        .setHTML(restaurantPopupHtml(restaurant))
+        .addTo(map);
+    }
+
     map.on("load", () => {
       addRestaurantLayers(map);
       (map.getSource(sourceId) as GeoJSONSource).setData(dataRef.current);
+      map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
     });
 
     map.on("click", clusterLayerId, (event) => {
@@ -90,12 +106,7 @@ export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect
       if (!restaurant || !coordinates) return;
 
       onSelectRef.current(restaurant);
-      popupRef.current?.remove();
-      popupRestaurantIdRef.current = restaurant.id;
-      popupRef.current = new maplibregl.Popup({ closeButton: false, offset: 14 })
-        .setLngLat(coordinates)
-        .setHTML(restaurantPopupHtml(restaurant))
-        .addTo(map);
+      openRestaurantPopup(restaurant, coordinates);
     });
 
     for (const layerId of [clusterLayerId, markerLayerId]) {
@@ -143,6 +154,7 @@ export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect
     const syncData = () => {
       addRestaurantLayers(map);
       (map.getSource(sourceId) as GeoJSONSource).setData(data);
+      map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
 
       if (popupRestaurantIdRef.current && !restaurants.some((restaurant) => restaurant.id === popupRestaurantIdRef.current)) {
         popupRef.current?.remove();
@@ -187,6 +199,40 @@ export function MapView({ restaurants, selectedId, mapTone, cityCenter, onSelect
       popupRestaurantIdRef.current = null;
     }
   }, [selectedId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusRequest) return;
+
+    const focusRestaurant = () => {
+      const restaurant = restaurantsRef.current.find((item) => item.id === focusRequest.id);
+      if (!restaurant) return;
+      const coordinates: [number, number] = [restaurant.longitude, restaurant.latitude];
+
+      map.easeTo({
+        center: coordinates,
+        zoom: Math.max(map.getZoom(), restaurantFocusZoom),
+        duration: 550
+      });
+
+      popupRef.current?.remove();
+      popupRestaurantIdRef.current = restaurant.id;
+      popupRef.current = new maplibregl.Popup({ closeButton: false, offset: 14 })
+        .setLngLat(coordinates)
+        .setHTML(restaurantPopupHtml(restaurant))
+        .addTo(map);
+    };
+
+    if (map.loaded()) {
+      focusRestaurant();
+    } else {
+      map.once("load", focusRestaurant);
+    }
+
+    return () => {
+      map.off("load", focusRestaurant);
+    };
+  }, [focusRequest]);
 
   return <div ref={containerRef} className="map-canvas" data-testid="map-canvas" />;
 }

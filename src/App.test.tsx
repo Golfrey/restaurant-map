@@ -5,8 +5,8 @@ import type { RestaurantResponse } from "../shared/types";
 import App from "./App";
 
 vi.mock("./MapView", () => ({
-  MapView: ({ restaurants, onSelect }: any) => (
-    <div data-testid="map">
+  MapView: ({ restaurants, onSelect, focusRequest }: any) => (
+    <div data-testid="map" data-focus-id={focusRequest?.id ?? ""}>
       {restaurants.map((restaurant: any) => (
         <button key={restaurant.id} type="button" onClick={() => onSelect(restaurant)}>
           marker {restaurant.name}
@@ -103,6 +103,25 @@ test("renders map data and source links", async () => {
   await userEvent.type(screen.getByPlaceholderText("Search restaurants, cuisines, tags"), "sushi");
   expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Le Gratin/i })).not.toBeInTheDocument();
+});
+
+test("requests map focus when a restaurant is selected from the list", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+  expect(screen.getByTestId("map")).toHaveAttribute("data-focus-id", "");
+
+  await userEvent.click(within(screen.getByLabelText("Restaurants")).getByRole("button", { name: /Sushi Ouji/i }));
+
+  expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-focus-id", "resy:4");
 });
 
 test("searches and switches supported cities", async () => {

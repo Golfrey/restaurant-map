@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, RefreshCw, Search, Utensils } from "lucide-react";
 import { defaultCityCode, getCity, supportedCities, type CityCode } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
@@ -28,6 +28,8 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const mapFocusNonceRef = useRef(0);
+  const [mapFocusRequest, setMapFocusRequest] = useState<{ id: string; nonce: number }>();
 
   useEffect(() => {
     if (!data) return;
@@ -37,6 +39,7 @@ export default function App() {
   useEffect(() => {
     setSelectedTags([]);
     setSelectedId(undefined);
+    setMapFocusRequest(undefined);
   }, [cityCode]);
 
   const tagOptions = useMemo(() => topTags(data?.restaurants ?? []), [data]);
@@ -50,6 +53,8 @@ export default function App() {
 
   const selectRestaurant = useCallback((restaurant: Restaurant) => {
     setSelectedId(restaurant.id);
+    mapFocusNonceRef.current += 1;
+    setMapFocusRequest({ id: restaurant.id, nonce: mapFocusNonceRef.current });
   }, []);
 
   function toggleTag(tag: string) {
@@ -158,6 +163,7 @@ export default function App() {
             <MapView
               restaurants={restaurants}
               selectedId={selectedRestaurant?.id}
+              focusRequest={mapFocusRequest}
               mapTone={mapTone}
               cityCenter={selectedCity.center}
               onSelect={selectRestaurant}

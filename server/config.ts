@@ -60,7 +60,7 @@ export function getConfig(cityCode: CityCode = cityCodeFromEnv()): AppConfig {
     cacheDir: process.env.CACHE_DIR ?? path.resolve(process.cwd(), ".cache"),
     resyApiKey: process.env.RESY_API_KEY ?? defaultResyApiKey,
     resyUserAgent: process.env.RESY_USER_AGENT ?? defaultResyUserAgent,
-    resyMaxPages: numberFromEnv("RESY_MAX_PAGES", 20),
+    resyMaxPages: numberFromEnv("RESY_MAX_PAGES", 100),
     resyPerPage: numberFromEnv("RESY_PER_PAGE", 100),
     upstreamTimeoutMs: numberFromEnv("UPSTREAM_TIMEOUT_MS", 15_000),
     city: {

@@ -49,6 +49,8 @@ CRON_SECRET=
 CACHE_TTL_HOURS=24
 RESY_API_KEY=
 RESY_USER_AGENT=
+RESY_MAX_PAGES=100
+RESY_PER_PAGE=100
 UPSTREAM_TIMEOUT_MS=15000
 VITE_STADIA_MAP_STYLE=https://tiles.stadiamaps.com/styles/stamen_toner_{tone}.json
 VITE_STADIA_MAPS_API_KEY=
@@ -91,7 +93,7 @@ npm run build
 npm run check:payload-size -- --refresh
 ```
 
-`check:payload-size` refreshes local `.cache/` data and verifies each city response stays below Vercel's 4.5 MB function response limit. The most recent implementation check had NYC as the largest payload at 1.71 MB.
+`check:payload-size` refreshes local `.cache/` data and verifies each city response stays below Vercel's 4.5 MB function response limit. Re-run it after changing Resy crawl depth because larger page caps increase response size.
 
 ## Failure Behavior
 
