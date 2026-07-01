@@ -36,7 +36,8 @@ test("normalizes and filters inKind map locations", () => {
     name: "Le Gratin",
     cuisines: ["French"],
     tags: ["Newly Added"],
-    price: "$$"
+    price: "$$",
+    sourceUrls: { inkind: "https://app.inkind.com/purchase/le-gratin" }
   });
 });
 

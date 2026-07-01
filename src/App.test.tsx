@@ -83,7 +83,7 @@ const payload: RestaurantResponse = {
       cuisines: ["French"],
       tags: ["Dinner"],
       price: "$$$",
-      sourceUrls: { resy: "https://resy.com/a", inkind: "https://inkind.com/a" }
+      sourceUrls: { resy: "https://resy.com/a", inkind: "https://le-gratin.inkind.com/" }
     },
     {
       id: "resy:4",
@@ -180,7 +180,10 @@ test("renders map data and source links", async () => {
   await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
   expect(screen.getByTestId("map")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open Resy" })).toHaveAttribute("href", "https://resy.com/a");
-  expect(screen.getByRole("link", { name: "Open inKind" })).toHaveAttribute("href", "https://inkind.com/a");
+  expect(screen.getByRole("link", { name: "Open inKind" })).toHaveAttribute(
+    "href",
+    "https://app.inkind.com/purchase/2"
+  );
 
   await userEvent.type(screen.getByPlaceholderText("Search restaurants, labels"), "sushi");
   expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();

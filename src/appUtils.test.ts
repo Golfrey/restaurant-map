@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import type { Restaurant } from "../shared/types";
 import { restaurantLabels } from "../shared/labels";
-import { filterRestaurants, filterRestaurantsByBounds, topTags } from "./appUtils";
+import { filterRestaurants, filterRestaurantsByBounds, inKindAppUrl, topTags } from "./appUtils";
 
 function restaurant(overrides: Partial<Restaurant>): Restaurant {
   return {
@@ -70,4 +70,35 @@ test("filters restaurants by map bounds", () => {
       north: 40.72
     }).map((item) => item.name)
   ).toEqual(["Inside"]);
+});
+
+test("keeps inKind app purchase links", () => {
+  expect(
+    inKindAppUrl(
+      restaurant({
+        sourceUrls: { inkind: "https://app.inkind.com/purchase/le-gratin" }
+      })
+    )
+  ).toBe("https://app.inkind.com/purchase/le-gratin");
+});
+
+test("rewrites legacy inKind purchase subdomains to app links", () => {
+  expect(
+    inKindAppUrl(
+      restaurant({
+        sourceIds: { inkindLocationId: 44, inkindBrandId: 12 },
+        sourceUrls: { inkind: "https://le-gratin.inkind.com/" }
+      })
+    )
+  ).toBe("https://app.inkind.com/purchase/44");
+});
+
+test("does not create inKind app links from unsafe source urls", () => {
+  expect(
+    inKindAppUrl(
+      restaurant({
+        sourceUrls: { inkind: "https://example.com/not-inkind" }
+      })
+    )
+  ).toBeUndefined();
 });

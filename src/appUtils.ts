@@ -111,3 +111,30 @@ export function safeExternalUrl(value: string | undefined, allowedDomain: Extern
     return undefined;
   }
 }
+
+function inKindPurchaseUrl(value: number | string): string {
+  return `https://app.inkind.com/purchase/${encodeURIComponent(String(value))}`;
+}
+
+function legacyInKindPurchaseSlug(url: URL): string | undefined {
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === "app.inkind.com" || hostname === "www.inkind.com") return undefined;
+  if (!hostname.endsWith(".inkind.com")) return undefined;
+  if (url.pathname !== "/" && url.pathname !== "") return undefined;
+  return hostname.slice(0, -".inkind.com".length);
+}
+
+export function inKindAppUrl(restaurant: Restaurant): string | undefined {
+  const sourceUrl = safeExternalUrl(restaurant.sourceUrls.inkind, "inkind.com");
+  if (!sourceUrl) return undefined;
+
+  const url = new URL(sourceUrl);
+  if (url.hostname.toLowerCase() === "app.inkind.com" && url.pathname.startsWith("/purchase/")) {
+    return url.toString();
+  }
+
+  const legacySlug = legacyInKindPurchaseSlug(url);
+  if (!legacySlug) return sourceUrl;
+
+  return inKindPurchaseUrl(restaurant.sourceIds.inkindLocationId ?? legacySlug);
+}

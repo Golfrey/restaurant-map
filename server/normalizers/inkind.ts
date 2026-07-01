@@ -8,6 +8,11 @@ function isCuisineTag(tag: InKindTag): boolean {
   return tag.category?.toLowerCase() === "cuisine type";
 }
 
+function inKindPurchaseUrl(location: InKindLocation, brand: InKindBrand | undefined, locationId: number): string {
+  const purchasePath = location.brand_slug || brand?.brand_slug || String(locationId);
+  return `https://app.inkind.com/purchase/${encodeURIComponent(purchasePath)}`;
+}
+
 export function normalizeInKindLocation(
   location: InKindLocation,
   brand: InKindBrand | undefined,
@@ -62,7 +67,7 @@ export function normalizeInKindLocation(
     price: priceFromInKind(brand?.check_average),
     imageUrl: cloudinaryUrl(brand?.branding?.hero_image?.value),
     sourceUrls: {
-      inkind: location.purchase_page_link
+      inkind: inKindPurchaseUrl(location, brand, locationId)
     },
     distanceMiles: Number(distanceMiles(point, city.center).toFixed(2))
   };
