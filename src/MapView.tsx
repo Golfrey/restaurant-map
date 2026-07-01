@@ -20,8 +20,10 @@ import {
   sourceId,
   transitStationDetailsPathBadgeLayerId,
   transitStationDetailsPathBadgeTextLayerId,
+  transitStationDetailsBadgeTextLayerId,
   transitStationDetailsIconLayerId,
   transitStationDetailsLabelLayerId,
+  transitStationBadgeTextLayerId,
   transitStationIconLayerId,
   transitStationLabelLayerId,
   transitStationPopupHtml
@@ -215,10 +217,12 @@ function MapViewComponent({
 
     const transitLayerIds = [
       transitStationDetailsIconLayerId,
+      transitStationDetailsBadgeTextLayerId,
       transitStationDetailsPathBadgeLayerId,
       transitStationDetailsPathBadgeTextLayerId,
       transitStationDetailsLabelLayerId,
       transitStationIconLayerId,
+      transitStationBadgeTextLayerId,
       transitStationLabelLayerId
     ];
 

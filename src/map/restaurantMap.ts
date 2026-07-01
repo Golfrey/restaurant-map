@@ -14,9 +14,11 @@ export const clusterCountLayerId = "restaurant-cluster-count";
 export const markerLayerId = "restaurant-markers";
 export const selectedLayerId = "restaurant-selected-marker";
 export const transitStationIconLayerId = "transit-station-icons";
+export const transitStationBadgeTextLayerId = "transit-station-badge-text";
 export const transitStationLabelLayerId = "transit-station-labels";
 export const transitStationDetailsSourceId = "transit-station-details";
 export const transitStationDetailsIconLayerId = "transit-station-details-icons";
+export const transitStationDetailsBadgeTextLayerId = "transit-station-details-badge-text";
 export const transitStationDetailsPathBadgeLayerId = "transit-station-details-path-badges";
 export const transitStationDetailsPathBadgeTextLayerId = "transit-station-details-path-badge-text";
 export const transitStationDetailsLabelLayerId = "transit-station-details-labels";
@@ -336,11 +338,37 @@ export function addTransitStationLayers(map: maplibregl.Map) {
         minzoom: 11,
         filter: stationIconFilter,
         paint: {
-          "circle-color": "#a8d4e6",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3, 14, 4, 16, 5],
-          "circle-stroke-color": "rgba(6, 12, 20, 0.9)",
+          "circle-color": "#f97316",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 5.25, 14, 6.25, 16, 7.25],
+          "circle-stroke-color": "#dff4ff",
           "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 15, 1.5],
-          "circle-opacity": 0.78
+          "circle-opacity": 0.88
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (mapSourceId && !map.getLayer(transitStationBadgeTextLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationBadgeTextLayerId,
+        type: "symbol",
+        source: mapSourceId,
+        "source-layer": "pois",
+        minzoom: 11,
+        filter: stationIconFilter,
+        layout: {
+          "text-field": "M",
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 7, 14, 8, 16, 9],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(110, 45, 0, 0.8)",
+          "text-halo-width": 0.5
         }
       },
       beforeRestaurantLayers
@@ -385,11 +413,36 @@ export function addTransitStationLayers(map: maplibregl.Map) {
         minzoom: 9.5,
         filter: detailedStationIconFilter,
         paint: {
-          "circle-color": ["match", ["get", "system"], "DC Metro", "#b7dded", "#a8d4e6"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 9.5, 3, 11, 3.4, 14, 4.4, 16, 5.2],
-          "circle-stroke-color": "rgba(6, 12, 20, 0.9)",
+          "circle-color": "#f97316",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 9.5, 5, 11, 5.5, 14, 6.5, 16, 7.5],
+          "circle-stroke-color": "#dff4ff",
           "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 9.5, 1, 15, 1.5],
-          "circle-opacity": 0.8
+          "circle-opacity": 0.9
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (!map.getLayer(transitStationDetailsBadgeTextLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationDetailsBadgeTextLayerId,
+        type: "symbol",
+        source: transitStationDetailsSourceId,
+        minzoom: 9.5,
+        filter: detailedStationIconFilter,
+        layout: {
+          "text-field": "M",
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 9.5, 6.75, 11, 7.25, 14, 8.25, 16, 9.5],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(110, 45, 0, 0.8)",
+          "text-halo-width": 0.5
         }
       },
       beforeRestaurantLayers
@@ -406,9 +459,9 @@ export function addTransitStationLayers(map: maplibregl.Map) {
         filter: pathStationFilter,
         paint: {
           "circle-color": "#0072bc",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 13, 10, 16, 12],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 6.25, 13, 7.5, 16, 9],
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 1.5, 15, 2.25],
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 15, 1.75],
           "circle-opacity": 0.96
         }
       },
@@ -427,7 +480,7 @@ export function addTransitStationLayers(map: maplibregl.Map) {
         layout: {
           "text-field": ["step", ["zoom"], "P", 13, "PATH"],
           "text-font": ["Noto Sans Regular"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 9, 13, 8.5, 16, 10],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 7.5, 13, 7, 16, 8.5],
           "text-allow-overlap": true,
           "text-ignore-placement": true
         },
