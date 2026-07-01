@@ -86,7 +86,8 @@ describe("refreshAllCities", () => {
     const summary = await refreshAllCities({
       cache: store,
       cityCodes: ["nyc"],
-      buildPayload: async (config) => payload(config, { restaurants: [], sourceCounts: { resy: 0, inkind: 0, both: 0, total: 0 } })
+      buildPayload: async (config) =>
+        payload(config, { restaurants: [], sourceCounts: { resy: 0, inkind: 0, both: 0, total: 0 } })
     });
 
     expect(summary).toMatchObject({ refreshed: 0, skipped: 1, failed: 0 });

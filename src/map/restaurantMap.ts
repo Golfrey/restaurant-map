@@ -1,4 +1,4 @@
-import maplibregl, { type GeoJSONSource, type MapGeoJSONFeature } from "maplibre-gl";
+import maplibregl, { type MapGeoJSONFeature } from "maplibre-gl";
 import type { FeatureCollection, Point } from "geojson";
 import type { Restaurant } from "../../shared/types";
 import { sourceLabel } from "../appUtils";
@@ -35,12 +35,15 @@ function sourceColor(source: Restaurant["source"]): string {
 }
 
 function restaurantDetail(restaurant: Restaurant): string {
-  return [restaurant.neighborhood, restaurant.cuisines.slice(0, 2).join(", "), restaurant.price].filter(Boolean).join(" · ");
+  return [restaurant.neighborhood, restaurant.cuisines.slice(0, 2).join(", "), restaurant.price]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function mapStyleUrl(tone: MapTone): string {
   const envStyle = import.meta.env.VITE_STADIA_MAP_STYLE;
-  const baseUrl = envStyle && !envStyle.includes("{tone}") ? envStyle : envStyle?.replace("{tone}", tone) || stadiaStyles[tone];
+  const baseUrl =
+    envStyle && !envStyle.includes("{tone}") ? envStyle : envStyle?.replace("{tone}", tone) || stadiaStyles[tone];
   const apiKey = import.meta.env.VITE_STADIA_MAPS_API_KEY;
   if (!apiKey) return baseUrl;
   const separator = baseUrl.includes("?") ? "&" : "?";

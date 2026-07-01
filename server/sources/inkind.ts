@@ -1,11 +1,6 @@
 import type { Restaurant } from "../../shared/types";
 import type { AppConfig } from "../config";
-import {
-  normalizeInKindLocation,
-  type InKindBrand,
-  type InKindLocation,
-  type InKindTag
-} from "../normalizers";
+import { normalizeInKindLocation, type InKindBrand, type InKindLocation, type InKindTag } from "../normalizers";
 import { fetchJson, requireArray } from "./http";
 
 export interface InKindMapResponse {
@@ -47,7 +42,9 @@ export function normalizeInKindRestaurants(payload: InKindMapResponse, config: A
   }
 
   return locations
-    .map((location) => normalizeInKindLocation(location, brandsById.get(location.brand_id ?? -1), tagsById, config.city))
+    .map((location) =>
+      normalizeInKindLocation(location, brandsById.get(location.brand_id ?? -1), tagsById, config.city)
+    )
     .filter((restaurant): restaurant is Restaurant => Boolean(restaurant));
 }
 

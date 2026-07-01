@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, MapPin, RefreshCw, Search, SlidersHorizontal, Utensils, X } from "lucide-react";
+import { ChevronDown, LocateFixed, MapPin, RefreshCw, Search, SlidersHorizontal, Utensils, X } from "lucide-react";
 import { defaultCityCode, getCity, supportedCities, type CityCode } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
 import { CitySelector } from "./components/app/CitySelector";
@@ -19,7 +19,10 @@ import { cn } from "./lib/utils";
 import {
   filterRestaurants,
   filterRestaurantsByBounds,
+  nearbyRadiusMiles,
+  restaurantsWithinRadius,
   topTags,
+  type GeoCoordinates,
   type MapBounds,
   type PriceFilter,
   type SourceFilter
@@ -40,6 +43,13 @@ function sameBounds(a: MapBounds | undefined, b: MapBounds): boolean {
   return Boolean(a && a.west === b.west && a.south === b.south && a.east === b.east && a.north === b.north);
 }
 
+function geolocationErrorMessage(error: GeolocationPositionError): string {
+  if (error.code === 1) return "Location permission was denied. Enable location access and try again.";
+  if (error.code === 2) return "Your location is unavailable. Try again from a browser with location access.";
+  if (error.code === 3) return "Location lookup timed out. Try again.";
+  return "Unable to get your location. Try again.";
+}
+
 export default function App() {
   const [cityCode, setCityCode] = useState<CityCode>(defaultCityCode);
   const selectedCity = useMemo(() => getCity(cityCode), [cityCode]);
@@ -55,7 +65,12 @@ export default function App() {
   const [viewportBounds, setViewportBounds] = useState<MapBounds>();
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const mapFocusNonceRef = useRef(0);
+  const locationRequestNonceRef = useRef(0);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ id: string; nonce: number }>();
+  const [userCoordinates, setUserCoordinates] = useState<GeoCoordinates>();
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string>();
+  const [nearbyMode, setNearbyMode] = useState(false);
 
   useEffect(() => {
     if (!openPanel) return;
@@ -79,12 +94,54 @@ export default function App() {
     };
   }, [openPanel]);
 
-  useEffect(() => {
-    if (!cityData) return;
-    setSelectedId(cityData.restaurants[0]?.id);
-  }, [cityData]);
+  const tagOptions = useMemo(() => topTags(cityData?.restaurants ?? []), [cityData]);
+  const nearbyRestaurants = useMemo(
+    () => (userCoordinates ? restaurantsWithinRadius(cityData?.restaurants ?? [], userCoordinates) : []),
+    [cityData, userCoordinates]
+  );
+  const filteredRestaurants = useMemo(
+    () =>
+      nearbyMode
+        ? nearbyRestaurants
+        : filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags, selectedPrices),
+    [cityData, nearbyMode, nearbyRestaurants, query, source, selectedPrices, selectedTags]
+  );
+  const visibleRestaurants = useMemo(
+    () => (nearbyMode ? filteredRestaurants : filterRestaurantsByBounds(filteredRestaurants, viewportBounds)),
+    [filteredRestaurants, nearbyMode, viewportBounds]
+  );
+  const mapCenter = useMemo(
+    () => (nearbyMode && userCoordinates ? userCoordinates : selectedCity.center),
+    [nearbyMode, selectedCity.center, userCoordinates]
+  );
+  const mapFitBoundsKey = useMemo(() => {
+    if (!nearbyMode) return cityData?.city;
+    if (!userCoordinates) return undefined;
+    return [
+      "nearby",
+      cityData?.city ?? cityCode,
+      cityData?.generatedAt ?? "pending",
+      userCoordinates.latitude.toFixed(5),
+      userCoordinates.longitude.toFixed(5),
+      nearbyRestaurants.length
+    ].join(":");
+  }, [cityCode, cityData?.city, cityData?.generatedAt, nearbyMode, nearbyRestaurants.length, userCoordinates]);
 
   useEffect(() => {
+    if (!cityData || nearbyMode) return;
+    setSelectedId(cityData.restaurants[0]?.id);
+  }, [cityData, nearbyMode]);
+
+  useEffect(() => {
+    if (!nearbyMode) return;
+    setSelectedId(nearbyRestaurants[0]?.id);
+  }, [nearbyMode, nearbyRestaurants]);
+
+  useEffect(() => {
+    locationRequestNonceRef.current += 1;
+    setLocating(false);
+    setLocationError(undefined);
+    setNearbyMode(false);
     setSelectedTags([]);
     setSelectedPrices([]);
     setSelectedId(undefined);
@@ -93,20 +150,14 @@ export default function App() {
     setOpenPanel(null);
   }, [cityCode]);
 
-  const tagOptions = useMemo(() => topTags(cityData?.restaurants ?? []), [cityData]);
-  const filteredRestaurants = useMemo(
-    () => filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags, selectedPrices),
-    [cityData, query, source, selectedTags, selectedPrices]
-  );
-  const visibleRestaurants = useMemo(
-    () => filterRestaurantsByBounds(filteredRestaurants, viewportBounds),
-    [filteredRestaurants, viewportBounds]
-  );
-  const selectedRestaurant = visibleRestaurants.find((restaurant) => restaurant.id === selectedId) ?? visibleRestaurants[0];
+  const selectedRestaurant =
+    visibleRestaurants.find((restaurant) => restaurant.id === selectedId) ?? visibleRestaurants[0];
   const generatedLabel = cityData?.generatedAt ? new Date(cityData.generatedAt).toLocaleString() : "Waiting for data";
   const activeFilterCount = (source === "all" ? 0 : 1) + selectedPrices.length + selectedTags.length;
   const restaurantListEmptyMessage =
-    viewportBounds && filteredRestaurants.length
+    nearbyMode
+      ? `No restaurants within ${nearbyRadiusMiles} miles of your location.`
+      : viewportBounds && filteredRestaurants.length
       ? "No restaurants in the current map view."
       : "No restaurants match the current filters.";
 
@@ -220,7 +271,14 @@ export default function App() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xs font-medium text-muted-foreground">City</div>
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => setOpenPanel(null)} type="button" aria-label="Close city selector">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => setOpenPanel(null)}
+                    type="button"
+                    aria-label="Close city selector"
+                  >
                     <X className="size-4" />
                   </Button>
                 </div>
@@ -250,7 +308,14 @@ export default function App() {
                         Clear
                       </Button>
                     ) : null}
-                    <Button variant="ghost" size="icon" className="size-7" onClick={() => setOpenPanel(null)} type="button" aria-label="Close filters">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={() => setOpenPanel(null)}
+                      type="button"
+                      aria-label="Close filters"
+                    >
                       <X className="size-4" />
                     </Button>
                   </div>

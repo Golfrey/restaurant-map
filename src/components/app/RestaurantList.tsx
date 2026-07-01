@@ -69,10 +69,18 @@ function RestaurantListComponent({
   const visibleRestaurants = restaurants.slice(visibleRange.start, visibleRange.end);
 
   return (
-    <div ref={containerRef} className="min-h-0 flex-1 overflow-auto border-t" aria-label="Restaurants" onScroll={handleScroll}>
+    <div
+      ref={containerRef}
+      className="min-h-0 flex-1 overflow-auto border-t"
+      aria-label="Restaurants"
+      onScroll={handleScroll}
+    >
       {restaurants.length ? (
         <div className="relative" style={{ height: restaurants.length * rowHeight }}>
-          <div className="absolute inset-x-0 top-0" style={{ transform: `translateY(${visibleRange.start * rowHeight}px)` }}>
+          <div
+            className="absolute inset-x-0 top-0"
+            style={{ transform: `translateY(${visibleRange.start * rowHeight}px)` }}
+          >
             {visibleRestaurants.map((restaurant) => (
               <button
                 key={restaurant.id}
@@ -91,7 +99,10 @@ function RestaurantListComponent({
                     {detailLine(restaurant) || sourceLabel(restaurant.source)}
                   </span>
                 </span>
-                <SourcePill restaurant={restaurant} className="hidden max-w-24 truncate px-2 text-[11px] sm:inline-flex" />
+                <SourcePill
+                  restaurant={restaurant}
+                  className="hidden max-w-24 truncate px-2 text-[11px] sm:inline-flex"
+                />
               </button>
             ))}
           </div>

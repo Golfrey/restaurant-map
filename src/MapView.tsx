@@ -191,7 +191,10 @@ function MapViewComponent({
       (map.getSource(sourceId) as GeoJSONSource).setData(data);
       map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
 
-      if (popupRestaurantIdRef.current && !restaurants.some((restaurant) => restaurant.id === popupRestaurantIdRef.current)) {
+      if (
+        popupRestaurantIdRef.current &&
+        !restaurants.some((restaurant) => restaurant.id === popupRestaurantIdRef.current)
+      ) {
         popupRef.current?.remove();
         popupRef.current = null;
         popupRestaurantIdRef.current = null;

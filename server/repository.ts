@@ -39,7 +39,10 @@ function sanitizeRestaurantPayload(payload: RestaurantResponse): RestaurantRespo
   };
 }
 
-export async function buildRestaurantPayload(config: AppConfig, options: LoadOptions = {}): Promise<RestaurantResponse> {
+export async function buildRestaurantPayload(
+  config: AppConfig,
+  options: LoadOptions = {}
+): Promise<RestaurantResponse> {
   const resyFetcher = options.fetchResy ?? fetchResyRestaurants;
   const inKindFetcher = options.fetchInKind ?? fetchInKindRestaurants;
 
@@ -47,7 +50,9 @@ export async function buildRestaurantPayload(config: AppConfig, options: LoadOpt
   const warnings: string[] = [];
 
   if (resyResult.status === "rejected") {
-    warnings.push(`Resy fetch failed: ${resyResult.reason instanceof Error ? resyResult.reason.message : String(resyResult.reason)}`);
+    warnings.push(
+      `Resy fetch failed: ${resyResult.reason instanceof Error ? resyResult.reason.message : String(resyResult.reason)}`
+    );
   }
   if (inKindResult.status === "rejected") {
     warnings.push(

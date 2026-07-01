@@ -16,9 +16,7 @@ export function normalizeResyHit(hit: ResyVenueHit, city: CityConfig): Restauran
   if (!withinRadius(point, city.center, city.radiusMiles)) return null;
 
   const citySlug = hit.location?.url_slug || "new-york-ny";
-  const sourceUrl = hit.url_slug
-    ? `https://resy.com/cities/${citySlug}/venues/${hit.url_slug}`
-    : undefined;
+  const sourceUrl = hit.url_slug ? `https://resy.com/cities/${citySlug}/venues/${hit.url_slug}` : undefined;
 
   return {
     id: `resy:${resyId}`,

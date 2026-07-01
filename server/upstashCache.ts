@@ -16,7 +16,10 @@ export interface RestaurantCacheStore {
   writeRestaurantPayload(payload: RestaurantResponse, refreshedAt?: Date): Promise<void>;
 }
 
-type FetchLike = (url: string, init: RequestInit) => Promise<{
+type FetchLike = (
+  url: string,
+  init: RequestInit
+) => Promise<{
   ok: boolean;
   status: number;
   text(): Promise<string>;

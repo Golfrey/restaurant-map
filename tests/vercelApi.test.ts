@@ -1,12 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import type { RestaurantResponse } from "../shared/types";
-import {
-  handleCronRefresh,
-  handleRestaurants,
-  handleStatus,
-  type ApiRequest,
-  type ApiResponse
-} from "../server/apiHandlers";
+import { handleCronRefresh, handleRestaurants, handleStatus, type ApiResponse } from "../server/apiHandlers";
 import type { RestaurantCacheMetadata, RestaurantCacheStore } from "../server/upstashCache";
 
 const payload: RestaurantResponse = {
@@ -88,11 +82,9 @@ describe("Vercel API handlers", () => {
   test("returns 503 when cached payload is missing", async () => {
     const { res, state } = mockResponse();
 
-    await handleRestaurants(
-      { method: "GET", query: { city: "nyc" } },
-      res,
-      { cache: cache({ getRestaurantPayloadRaw: vi.fn(async () => null) }) }
-    );
+    await handleRestaurants({ method: "GET", query: { city: "nyc" } }, res, {
+      cache: cache({ getRestaurantPayloadRaw: vi.fn(async () => null) })
+    });
 
     expect(state.statusCode).toBe(503);
     expect(state.body).toMatchObject({ message: expect.stringContaining("not available yet") });
@@ -101,11 +93,10 @@ describe("Vercel API handlers", () => {
   test("reports stale status metadata", async () => {
     const { res, state } = mockResponse();
 
-    await handleStatus(
-      { method: "GET", query: { city: "nyc" } },
-      res,
-      { cache: cache(), now: new Date("2026-07-03T18:00:00.000Z") }
-    );
+    await handleStatus({ method: "GET", query: { city: "nyc" } }, res, {
+      cache: cache(),
+      now: new Date("2026-07-03T18:00:00.000Z")
+    });
 
     expect(state.statusCode).toBe(200);
     expect(state.body).toMatchObject({
@@ -142,7 +133,10 @@ describe("Vercel API handlers", () => {
     }));
     const { res, state } = mockResponse();
 
-    await handleCronRefresh({ method: "GET", headers: { authorization: "Bearer secret" } }, res, { cache: cache(), refresh });
+    await handleCronRefresh({ method: "GET", headers: { authorization: "Bearer secret" } }, res, {
+      cache: cache(),
+      refresh
+    });
 
     expect(state.statusCode).toBe(200);
     expect(refresh).toHaveBeenCalledOnce();

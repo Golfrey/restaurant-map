@@ -22,7 +22,9 @@ export function RestaurantDetails({ restaurant }: { restaurant?: Restaurant }) {
 
   return (
     <Card className="absolute bottom-4 right-4 z-10 w-[min(420px,calc(100%-2rem))] overflow-hidden rounded-xl bg-background/95 shadow-2xl backdrop-blur max-md:bottom-2 max-md:right-2 max-md:max-h-[46vh] max-md:w-[calc(100%-1rem)]">
-      {restaurant.imageUrl ? <img className="h-40 w-full object-cover max-md:h-28" src={restaurant.imageUrl} alt="" /> : null}
+      {restaurant.imageUrl ? (
+        <img className="h-40 w-full object-cover max-md:h-28" src={restaurant.imageUrl} alt="" />
+      ) : null}
       <CardContent className="grid gap-3 p-4 max-md:gap-2 max-md:p-3">
         <SourcePill restaurant={restaurant} />
         <div className="grid gap-1">
@@ -38,7 +40,9 @@ export function RestaurantDetails({ restaurant }: { restaurant?: Restaurant }) {
               {restaurant.rating.count ? ` (${restaurant.rating.count.toLocaleString()})` : ""}
             </Badge>
           ) : null}
-          {restaurant.distanceMiles ? <Badge variant="secondary">{restaurant.distanceMiles.toFixed(1)} mi</Badge> : null}
+          {restaurant.distanceMiles ? (
+            <Badge variant="secondary">{restaurant.distanceMiles.toFixed(1)} mi</Badge>
+          ) : null}
         </div>
 
         {tags.length ? (

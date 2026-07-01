@@ -1,16 +1,28 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
-import type { RestaurantResponse } from "../shared/types";
+import type { CityCenter } from "../shared/cities";
+import type { Restaurant, RestaurantResponse } from "../shared/types";
 import App from "./App";
+import type { MapBounds } from "./appUtils";
+
+interface MockMapViewProps {
+  restaurants: Restaurant[];
+  onSelect: (restaurant: Restaurant) => void;
+  focusRequest?: {
+    id: string;
+  };
+  cityCenter: CityCenter;
+  onViewportChange?: (bounds: MapBounds) => void;
+}
 
 vi.mock("./MapView", () => ({
-  MapView: ({ restaurants, onSelect, focusRequest, cityCenter, onViewportChange }: any) => (
+  MapView: ({ restaurants, onSelect, focusRequest, cityCenter, onViewportChange }: MockMapViewProps) => (
     <div
       data-testid="map"
       data-focus-id={focusRequest?.id ?? ""}
       data-center={`${cityCenter.latitude},${cityCenter.longitude}`}
-      data-restaurants={restaurants.map((restaurant: any) => restaurant.name).join("|")}
+      data-restaurants={restaurants.map((restaurant) => restaurant.name).join("|")}
     >
       <button
         type="button"
@@ -25,7 +37,7 @@ vi.mock("./MapView", () => ({
       >
         simulate lower manhattan viewport
       </button>
-      {restaurants.map((restaurant: any) => (
+      {restaurants.map((restaurant) => (
         <button key={restaurant.id} type="button" onClick={() => onSelect(restaurant)}>
           marker {restaurant.name}
         </button>
@@ -247,10 +259,13 @@ test("searches and switches supported cities", async () => {
 
 test("moves the map to the clicked city before new restaurant data resolves", async () => {
   const laLoad = deferred<{ ok: boolean; json: () => Promise<RestaurantResponse> }>();
-  const fetchMock = vi.fn().mockResolvedValueOnce({
-    ok: true,
-    json: async () => payload
-  }).mockReturnValueOnce(laLoad.promise);
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload
+    })
+    .mockReturnValueOnce(laLoad.promise);
   vi.stubGlobal("fetch", fetchMock);
 
   render(<App />);

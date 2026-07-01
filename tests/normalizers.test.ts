@@ -66,7 +66,12 @@ describe("dedupeRestaurants", () => {
   test("merges same-name restaurants close together", () => {
     const resy = normalizeResyHit(resyFixture.search.hits[0], city) as Restaurant;
     const tagsById = new Map(inKindFixture.tags.map((tag) => [tag.id, tag]));
-    const inkind = normalizeInKindLocation(inKindFixture.locations[0], inKindFixture.brands[0], tagsById, city) as Restaurant;
+    const inkind = normalizeInKindLocation(
+      inKindFixture.locations[0],
+      inKindFixture.brands[0],
+      tagsById,
+      city
+    ) as Restaurant;
 
     const merged = dedupeRestaurants([resy], [inkind]);
 

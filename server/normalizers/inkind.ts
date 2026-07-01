@@ -33,16 +33,8 @@ export function normalizeInKindLocation(
     .map((tag) => tag.id)
     .filter((id): id is number => Number.isFinite(id));
   const rawTags = rawTagIds.map((id) => tagsById.get(id)).filter((tag): tag is InKindTag => Boolean(tag));
-  const cuisineTags = compactStrings(
-    rawTags
-      .filter((tag) => isCuisineTag(tag))
-      .map((tag) => tag.name)
-  );
-  const tagNames = compactStrings(
-    rawTags
-      .filter((tag) => !isCuisineTag(tag))
-      .map((tag) => tag.name)
-  );
+  const cuisineTags = compactStrings(rawTags.filter((tag) => isCuisineTag(tag)).map((tag) => tag.name));
+  const tagNames = compactStrings(rawTags.filter((tag) => !isCuisineTag(tag)).map((tag) => tag.name));
 
   return {
     id: `inkind:${locationId}`,

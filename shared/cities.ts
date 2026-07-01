@@ -1,4 +1,19 @@
-export const cityCodes = ["nyc", "la", "chi", "sf", "dc", "mia", "bos", "phl", "atl", "aus", "dal", "den", "sea", "lv"] as const;
+export const cityCodes = [
+  "nyc",
+  "la",
+  "chi",
+  "sf",
+  "dc",
+  "mia",
+  "bos",
+  "phl",
+  "atl",
+  "aus",
+  "dal",
+  "den",
+  "sea",
+  "lv"
+] as const;
 
 export type CityCode = (typeof cityCodes)[number];
 
@@ -123,20 +138,20 @@ const cityAliases: Record<string, CityCode> = {
   "new-york": "nyc",
   "new-york-city": "nyc",
   "los-angeles": "la",
-  "chicago": "chi",
+  chicago: "chi",
   "san-francisco": "sf",
-  "washington": "dc",
+  washington: "dc",
   "washington-dc": "dc",
-  "miami": "mia",
-  "boston": "bos",
-  "philadelphia": "phl",
-  "atlanta": "atl",
-  "austin": "aus",
-  "dallas": "dal",
-  "denver": "den",
-  "seattle": "sea",
+  miami: "mia",
+  boston: "bos",
+  philadelphia: "phl",
+  atlanta: "atl",
+  austin: "aus",
+  dallas: "dal",
+  denver: "den",
+  seattle: "sea",
   "las-vegas": "lv",
-  "vegas": "lv"
+  vegas: "lv"
 };
 
 function cityKey(value: string): string {

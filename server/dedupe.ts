@@ -67,7 +67,7 @@ function mergeRestaurants(resy: Restaurant, inkind: Restaurant): Restaurant {
       ...resy.sourceIds,
       ...inkind.sourceIds
     },
-    address: resy.address?.street ? resy.address : inkind.address ?? resy.address,
+    address: resy.address?.street ? resy.address : (inkind.address ?? resy.address),
     cuisines: unique([...resy.cuisines, ...inkind.cuisines]),
     tags: unique([...resy.tags, ...inkind.tags]),
     rating: mergeRating(resy.rating, inkind.rating),

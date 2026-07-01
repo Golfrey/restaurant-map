@@ -33,7 +33,10 @@ export function CitySelector({ cities, value, onChange }: CitySelectorProps) {
           className="h-9 rounded-lg bg-muted/35 pl-8"
         />
       </div>
-      <div className="grid max-h-36 gap-1 overflow-auto pr-1 max-md:flex max-md:max-h-none max-md:overflow-x-auto max-md:pb-1 max-md:pr-0" aria-label="Cities">
+      <div
+        className="grid max-h-36 gap-1 overflow-auto pr-1 max-md:flex max-md:max-h-none max-md:overflow-x-auto max-md:pb-1 max-md:pr-0"
+        aria-label="Cities"
+      >
         {filteredCities.map((city) => {
           const selected = city.code === value;
           return (
@@ -62,7 +65,9 @@ export function CitySelector({ cities, value, onChange }: CitySelectorProps) {
             </Button>
           );
         })}
-        {!filteredCities.length ? <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">No matching cities.</div> : null}
+        {!filteredCities.length ? (
+          <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">No matching cities.</div>
+        ) : null}
       </div>
     </div>
   );
