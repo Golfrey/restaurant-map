@@ -20,6 +20,7 @@ interface MockMapViewProps {
   };
   onViewportChange?: (bounds: MapBounds) => void;
   fitBoundsKey?: string;
+  mobileBottomInset?: number;
 }
 
 vi.mock("./MapView", () => ({

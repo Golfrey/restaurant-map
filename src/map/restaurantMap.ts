@@ -479,12 +479,17 @@ export function getRestaurantByFeature(restaurants: Restaurant[], feature: MapGe
   return id ? restaurants.find((restaurant) => restaurant.id === id) : undefined;
 }
 
-export function mapPadding(map: maplibregl.Map): maplibregl.PaddingOptions {
+export function mapPadding(map: maplibregl.Map, mobileBottomInset = 0): maplibregl.PaddingOptions {
   const width = map.getContainer().clientWidth;
   const height = map.getContainer().clientHeight;
   const base = width < 640 || height < 520 ? 28 : 42;
   const right = width >= 820 ? Math.min(420, Math.floor(width * 0.38)) : base;
-  const bottom = height >= 620 ? 120 : base;
+  const bottom =
+    width < 768 && mobileBottomInset
+      ? Math.min(Math.floor(height * 0.62), Math.max(base, mobileBottomInset))
+      : height >= 620
+        ? 120
+        : base;
   return { top: base, right, bottom, left: base };
 }
 

@@ -44,6 +44,7 @@ interface MapViewProps {
   onSelect: (restaurant: Restaurant) => void;
   onViewportChange?: (bounds: MapBounds) => void;
   fitBoundsKey?: string;
+  mobileBottomInset?: number;
 }
 
 const restaurantFocusZoom = 16;
@@ -65,6 +66,17 @@ function currentMapBounds(map: maplibregl.Map): MapBounds {
     east: bounds.getEast(),
     north: bounds.getNorth()
   };
+}
+
+function selectedRestaurantOffset(map: maplibregl.Map, mobileBottomInset = 0): [number, number] {
+  const container = map.getContainer();
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  if (width >= 768 || mobileBottomInset <= 0) return [0, 0];
+
+  const visibleHeight = Math.max(0, height - mobileBottomInset);
+  const offsetY = -Math.min(Math.floor(mobileBottomInset * 0.45), Math.floor(visibleHeight * 0.35), 220);
+  return [0, offsetY];
 }
 
 function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
@@ -105,7 +117,8 @@ function MapViewComponent({
   viewportRequest,
   onSelect,
   onViewportChange,
-  fitBoundsKey
+  fitBoundsKey,
+  mobileBottomInset
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -297,7 +310,7 @@ function MapViewComponent({
         bounds.extend([restaurant.longitude, restaurant.latitude]);
       }
       map.fitBounds(bounds, {
-        padding: mapPadding(map),
+        padding: mapPadding(map, mobileBottomInset),
         maxZoom: 14,
         duration: 450
       });
@@ -305,7 +318,7 @@ function MapViewComponent({
     };
 
     return runWithRestaurantLayers(map, fitRestaurants);
-  }, [fitBoundsKey, restaurants]);
+  }, [fitBoundsKey, mobileBottomInset, restaurants]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -330,6 +343,7 @@ function MapViewComponent({
       map.easeTo({
         center: coordinates,
         zoom: Math.max(map.getZoom(), restaurantFocusZoom),
+        offset: selectedRestaurantOffset(map, mobileBottomInset),
         duration: 550
       });
 
@@ -342,7 +356,7 @@ function MapViewComponent({
     };
 
     focusRestaurant();
-  }, [focusRequest]);
+  }, [focusRequest, mobileBottomInset]);
 
   return <div ref={containerRef} className="map-canvas" data-testid="map-canvas" />;
 }
