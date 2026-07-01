@@ -1,21 +1,30 @@
 import { memo, useEffect, useMemo, useRef } from "react";
-import maplibregl, { type GeoJSONSource } from "maplibre-gl";
+import maplibregl, { type GeoJSONSource, type MapGeoJSONFeature } from "maplibre-gl";
+import { Protocol } from "pmtiles";
 import type { FeatureCollection, Point } from "geojson";
 import type { CityCenter } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
 import type { MapBounds } from "./appUtils";
 import {
   addRestaurantLayers,
+  addTransitStationLayers,
   clusterLayerId,
   featureCollection,
   featureCoordinates,
   getRestaurantByFeature,
   mapPadding,
-  mapStyleUrl,
+  mapStyle,
   markerLayerId,
   restaurantPopupHtml,
   selectedLayerId,
-  sourceId
+  sourceId,
+  transitStationDetailsPathBadgeLayerId,
+  transitStationDetailsPathBadgeTextLayerId,
+  transitStationDetailsIconLayerId,
+  transitStationDetailsLabelLayerId,
+  transitStationIconLayerId,
+  transitStationLabelLayerId,
+  transitStationPopupHtml
 } from "./map/restaurantMap";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -38,6 +47,15 @@ interface MapViewProps {
 }
 
 const restaurantFocusZoom = 16;
+const globalWithPmtilesProtocol = globalThis as typeof globalThis & {
+  __resyPmtilesProtocolRegistered?: boolean;
+};
+
+if (!globalWithPmtilesProtocol.__resyPmtilesProtocolRegistered) {
+  const pmtilesProtocol = new Protocol();
+  maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
+  globalWithPmtilesProtocol.__resyPmtilesProtocolRegistered = true;
+}
 
 function currentMapBounds(map: maplibregl.Map): MapBounds {
   const bounds = map.getBounds();
@@ -51,6 +69,7 @@ function currentMapBounds(map: maplibregl.Map): MapBounds {
 
 function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
   const run = () => {
+    addTransitStationLayers(map);
     addRestaurantLayers(map);
     callback();
   };
@@ -113,7 +132,7 @@ function MapViewComponent({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: mapStyleUrl("dark"),
+      style: mapStyle("dark"),
       center: [cityCenterRef.current.longitude, cityCenterRef.current.latitude],
       zoom: 11,
       attributionControl: false
@@ -132,11 +151,21 @@ function MapViewComponent({
         .addTo(map);
     }
 
+    function openTransitStationPopup(feature: MapGeoJSONFeature, coordinates: [number, number]) {
+      popupRef.current?.remove();
+      popupRestaurantIdRef.current = null;
+      popupRef.current = new maplibregl.Popup({ closeButton: false, offset: 14 })
+        .setLngLat(coordinates)
+        .setHTML(transitStationPopupHtml(feature))
+        .addTo(map);
+    }
+
     function emitViewport() {
       onViewportChangeRef.current?.(currentMapBounds(map));
     }
 
     map.on("load", () => {
+      addTransitStationLayers(map);
       addRestaurantLayers(map);
       (map.getSource(sourceId) as GeoJSONSource).setData(dataRef.current);
       map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
@@ -171,7 +200,25 @@ function MapViewComponent({
       openRestaurantPopup(restaurant, coordinates);
     });
 
-    for (const layerId of [clusterLayerId, markerLayerId]) {
+    const transitLayerIds = [
+      transitStationDetailsIconLayerId,
+      transitStationDetailsPathBadgeLayerId,
+      transitStationDetailsPathBadgeTextLayerId,
+      transitStationDetailsLabelLayerId,
+      transitStationIconLayerId,
+      transitStationLabelLayerId
+    ];
+
+    for (const layerId of transitLayerIds) {
+      map.on("click", layerId, (event) => {
+        const feature = event.features?.[0];
+        const coordinates = feature ? featureCoordinates(feature) : undefined;
+        if (!feature || !coordinates) return;
+        openTransitStationPopup(feature, coordinates);
+      });
+    }
+
+    for (const layerId of [clusterLayerId, markerLayerId, ...transitLayerIds]) {
       map.on("mouseenter", layerId, () => {
         map.getCanvas().style.cursor = "pointer";
       });

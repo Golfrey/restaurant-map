@@ -8,6 +8,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200
   },
   server: {
+    allowedHosts: ["home-server-m4.taila3a41d.ts.net"],
     port: 5173,
     proxy: {
       "/api": {

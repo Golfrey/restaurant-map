@@ -1,20 +1,117 @@
+import { layers, namedFlavor } from "@protomaps/basemaps";
 import maplibregl, { type MapGeoJSONFeature } from "maplibre-gl";
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, MultiPolygon, Point } from "geojson";
 import type { Restaurant } from "../../shared/types";
 import { sourceLabel } from "../appUtils";
+import { transitStations } from "./transitStations.generated";
 
 export type MapTone = "lite" | "dark";
+export type ProtomapsFlavor = "light" | "dark" | "white" | "grayscale" | "black";
 
 export const sourceId = "restaurants";
 export const clusterLayerId = "restaurant-clusters";
 export const clusterCountLayerId = "restaurant-cluster-count";
 export const markerLayerId = "restaurant-markers";
 export const selectedLayerId = "restaurant-selected-marker";
+export const transitStationIconLayerId = "transit-station-icons";
+export const transitStationLabelLayerId = "transit-station-labels";
+export const transitStationDetailsSourceId = "transit-station-details";
+export const transitStationDetailsIconLayerId = "transit-station-details-icons";
+export const transitStationDetailsPathBadgeLayerId = "transit-station-details-path-badges";
+export const transitStationDetailsPathBadgeTextLayerId = "transit-station-details-path-badge-text";
+export const transitStationDetailsLabelLayerId = "transit-station-details-labels";
 
-const stadiaStyles: Record<MapTone, string> = {
-  lite: "https://tiles.stadiamaps.com/styles/stamen_toner_lite.json",
-  dark: "https://tiles.stadiamaps.com/styles/stamen_toner_dark.json"
+const protomapsSourceId = "protomaps";
+const defaultFlavorByTone: Record<MapTone, ProtomapsFlavor> = {
+  lite: "grayscale",
+  dark: "black"
 };
+const defaultProtomapsUrl = "/maps/protomaps.pmtiles";
+const defaultProtomapsLanguage = "en";
+const protomapsGlyphsUrl = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
+const protomapsSpriteBaseUrl = "https://protomaps.github.io/basemaps-assets/sprites/v4";
+const protomapsTrainStationIcon = "train_station";
+const detailedTransitCoverage: MultiPolygon = {
+  type: "MultiPolygon",
+  coordinates: [
+    [
+      [
+        [-74.35, 40.45],
+        [-73.65, 40.45],
+        [-73.65, 41.0],
+        [-74.35, 41.0],
+        [-74.35, 40.45]
+      ]
+    ],
+    [
+      [
+        [-77.6, 38.65],
+        [-76.75, 38.65],
+        [-76.75, 39.2],
+        [-77.6, 39.2],
+        [-77.6, 38.65]
+      ]
+    ]
+  ]
+};
+
+function pmtilesStyleUrl(url: string): string {
+  if (url.startsWith("pmtiles://")) return url;
+  return `pmtiles://${url}`;
+}
+
+function protomapsFlavor(tone: MapTone): ProtomapsFlavor {
+  const envFlavor = import.meta.env.VITE_PROTOMAPS_FLAVOR;
+  const flavor = envFlavor || defaultFlavorByTone[tone];
+  if (["light", "dark", "white", "grayscale", "black"].includes(flavor)) {
+    return flavor as ProtomapsFlavor;
+  }
+  return defaultFlavorByTone[tone];
+}
+
+function protomapsSpriteUrl(flavor: ProtomapsFlavor): string {
+  return `${protomapsSpriteBaseUrl}/${flavor === "dark" || flavor === "black" ? "dark" : "light"}`;
+}
+
+function appendApiKey(url: string, apiKey: string): string {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}key=${encodeURIComponent(apiKey)}`;
+}
+
+function hostedProtomapsStyleUrl(flavor: ProtomapsFlavor): string | undefined {
+  const apiKey = import.meta.env.VITE_PROTOMAPS_API_KEY;
+  if (!apiKey) return undefined;
+
+  const customStyleUrl = import.meta.env.VITE_PROTOMAPS_STYLE_URL;
+  if (customStyleUrl) return appendApiKey(customStyleUrl, apiKey);
+
+  const language = import.meta.env.VITE_PROTOMAPS_LANGUAGE || defaultProtomapsLanguage;
+  return appendApiKey(`https://api.protomaps.com/styles/v5/${flavor}/${language}.json`, apiKey);
+}
+
+function styleSourceUrl(source: maplibregl.SourceSpecification): string {
+  const url = "url" in source && typeof source.url === "string" ? source.url : "";
+  const tiles = "tiles" in source && Array.isArray(source.tiles) ? source.tiles.join(" ") : "";
+  return `${url} ${tiles}`.toLowerCase();
+}
+
+function protomapsMapSourceId(map: maplibregl.Map): string | undefined {
+  if (map.getSource(protomapsSourceId)) return protomapsSourceId;
+
+  const sources = map.getStyle().sources ?? {};
+  const vectorSources = Object.entries(sources).filter(([, source]) => source.type === "vector");
+  const protomapsSource = vectorSources.find(([id, source]) => {
+    const sourceUrl = styleSourceUrl(source);
+    return (
+      id.toLowerCase().includes("protomaps") ||
+      sourceUrl.includes("protomaps") ||
+      sourceUrl.includes("pmtiles://") ||
+      sourceUrl.includes("/maps/")
+    );
+  });
+
+  return protomapsSource?.[0] ?? vectorSources[0]?.[0];
+}
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
@@ -40,14 +137,45 @@ function restaurantDetail(restaurant: Restaurant): string {
     .join(" · ");
 }
 
-export function mapStyleUrl(tone: MapTone): string {
-  const envStyle = import.meta.env.VITE_STADIA_MAP_STYLE;
-  const baseUrl =
-    envStyle && !envStyle.includes("{tone}") ? envStyle : envStyle?.replace("{tone}", tone) || stadiaStyles[tone];
-  const apiKey = import.meta.env.VITE_STADIA_MAPS_API_KEY;
-  if (!apiKey) return baseUrl;
-  const separator = baseUrl.includes("?") ? "&" : "?";
-  return `${baseUrl}${separator}api_key=${encodeURIComponent(apiKey)}`;
+function lineBadgesHtml(lineColors: string, lineNames: string): string {
+  const names = lineNames.split("|");
+  return lineColors
+    .split("|")
+    .map((line, index) => {
+      const [label, color = "#1377c8", textColor = "#ffffff"] = line.split(":");
+      if (!label) return "";
+      const title = names[index] ? ` title="${escapeHtml(names[index])}"` : "";
+      return `<span class="transit-line-badge" style="background:${escapeHtml(color)};color:${escapeHtml(textColor)}"${title}>${escapeHtml(label)}</span>`;
+    })
+    .join("");
+}
+
+function featureProperty(feature: MapGeoJSONFeature, key: string): string {
+  const value = feature.properties?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+export function mapStyle(tone: MapTone): string | maplibregl.StyleSpecification {
+  const flavorName = protomapsFlavor(tone);
+  const hostedStyleUrl = hostedProtomapsStyleUrl(flavorName);
+  if (hostedStyleUrl) return hostedStyleUrl;
+
+  const tilesUrl = import.meta.env.VITE_PROTOMAPS_PMTILES_URL || defaultProtomapsUrl;
+
+  return {
+    version: 8,
+    glyphs: protomapsGlyphsUrl,
+    sprite: protomapsSpriteUrl(flavorName),
+    sources: {
+      [protomapsSourceId]: {
+        type: "vector",
+        url: pmtilesStyleUrl(tilesUrl),
+        attribution:
+          '<a href="https://protomaps.com/" target="_blank" rel="noopener noreferrer">Protomaps</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+      }
+    },
+    layers: layers(protomapsSourceId, namedFlavor(flavorName), { lang: "en" })
+  };
 }
 
 export function featureCollection(restaurants: Restaurant[]): FeatureCollection<Point> {
@@ -162,6 +290,190 @@ export function addRestaurantLayers(map: maplibregl.Map) {
   }
 }
 
+export function addTransitStationLayers(map: maplibregl.Map) {
+  const mapSourceId = protomapsMapSourceId(map);
+
+  const beforeRestaurantLayers = map.getLayer(clusterLayerId) ? clusterLayerId : undefined;
+  if (!map.getSource(transitStationDetailsSourceId)) {
+    map.addSource(transitStationDetailsSourceId, {
+      type: "geojson",
+      data: transitStations
+    });
+  }
+
+  const stationIconFilter: maplibregl.FilterSpecification = [
+    "all",
+    ["==", ["get", "kind"], "station"],
+    ["has", "name"],
+    ["!", ["within", detailedTransitCoverage]],
+    ["<=", ["coalesce", ["get", "min_zoom"], 14], ["+", ["zoom"], 1]]
+  ];
+  const stationLabelFilter: maplibregl.FilterSpecification = [
+    "all",
+    ["==", ["get", "kind"], "station"],
+    ["has", "name"],
+    ["!", ["within", detailedTransitCoverage]],
+    ["<=", ["coalesce", ["get", "min_zoom"], 14], ["zoom"]]
+  ];
+  const pathStationFilter: maplibregl.FilterSpecification = ["==", ["get", "system"], "PATH"];
+  const detailedStationIconFilter: maplibregl.FilterSpecification = [
+    "all",
+    ["!=", ["get", "system"], "PATH"],
+    ["any", ["==", ["get", "system"], "DC Metro"], [">=", ["zoom"], 11]]
+  ];
+  const detailedStationLabelFilter: maplibregl.FilterSpecification = [
+    "any",
+    ["==", ["get", "system"], "DC Metro"],
+    [">=", ["zoom"], 13]
+  ];
+
+  if (mapSourceId && !map.getLayer(transitStationIconLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationIconLayerId,
+        type: "symbol",
+        source: mapSourceId,
+        "source-layer": "pois",
+        minzoom: 11,
+        filter: stationIconFilter,
+        layout: {
+          "icon-image": protomapsTrainStationIcon,
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 1.05, 14, 1.25, 16, 1.45],
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": false,
+          "icon-padding": 2
+        },
+        paint: {
+          "icon-opacity": 0.82
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (mapSourceId && !map.getLayer(transitStationLabelLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationLabelLayerId,
+        type: "symbol",
+        source: mapSourceId,
+        "source-layer": "pois",
+        minzoom: 12,
+        filter: stationLabelFilter,
+        layout: {
+          "symbol-sort-key": ["coalesce", ["get", "min_zoom"], 14],
+          "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 15, 12, 17, 13.5],
+          "text-anchor": "top",
+          "text-offset": [0, 1.2],
+          "text-max-width": 8,
+          "text-optional": true
+        },
+        paint: {
+          "text-color": "#d8f2ff",
+          "text-halo-color": "rgba(6, 12, 20, 0.92)",
+          "text-halo-width": 1.25
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (!map.getLayer(transitStationDetailsIconLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationDetailsIconLayerId,
+        type: "symbol",
+        source: transitStationDetailsSourceId,
+        minzoom: 9.5,
+        filter: detailedStationIconFilter,
+        layout: {
+          "icon-image": protomapsTrainStationIcon,
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 9.5, 1, 11, 1.15, 14, 1.4, 16, 1.6],
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": false,
+          "icon-padding": 2
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (!map.getLayer(transitStationDetailsPathBadgeLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationDetailsPathBadgeLayerId,
+        type: "circle",
+        source: transitStationDetailsSourceId,
+        minzoom: 11,
+        filter: pathStationFilter,
+        paint: {
+          "circle-color": "#0072bc",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 13, 10, 16, 12],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 1.5, 15, 2.25],
+          "circle-opacity": 0.96
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (!map.getLayer(transitStationDetailsPathBadgeTextLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationDetailsPathBadgeTextLayerId,
+        type: "symbol",
+        source: transitStationDetailsSourceId,
+        minzoom: 11,
+        filter: pathStationFilter,
+        layout: {
+          "text-field": ["step", ["zoom"], "P", 13, "PATH"],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 9, 13, 8.5, 16, 10],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(0, 54, 96, 0.85)",
+          "text-halo-width": 0.75
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+
+  if (!map.getLayer(transitStationDetailsLabelLayerId)) {
+    map.addLayer(
+      {
+        id: transitStationDetailsLabelLayerId,
+        type: "symbol",
+        source: transitStationDetailsSourceId,
+        minzoom: 11.5,
+        filter: detailedStationLabelFilter,
+        layout: {
+          "symbol-sort-key": ["case", ["==", ["get", "system"], "PATH"], 0, 1],
+          "text-field": ["concat", ["get", "name"], "\n", ["get", "lineSummary"]],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 9.5, 15, 11.5, 17, 12.5],
+          "text-anchor": "top",
+          "text-offset": [0, 1.2],
+          "text-max-width": 9,
+          "text-optional": true
+        },
+        paint: {
+          "text-color": ["match", ["get", "system"], "PATH", "#9fd7ff", "#d8f2ff"],
+          "text-halo-color": "rgba(6, 12, 20, 0.94)",
+          "text-halo-width": 1.25
+        }
+      },
+      beforeRestaurantLayers
+    );
+  }
+}
+
 export function getRestaurantByFeature(restaurants: Restaurant[], feature: MapGeoJSONFeature): Restaurant | undefined {
   const id = featureId(feature);
   return id ? restaurants.find((restaurant) => restaurant.id === id) : undefined;
@@ -181,4 +493,13 @@ export function restaurantPopupHtml(restaurant: Restaurant): string {
   return `<div class="map-popup"><strong>${escapeHtml(restaurant.name)}</strong><span>${escapeHtml(sourceLabel(restaurant.source))}${
     detail ? ` · ${escapeHtml(detail)}` : ""
   }</span></div>`;
+}
+
+export function transitStationPopupHtml(feature: MapGeoJSONFeature): string {
+  const name = featureProperty(feature, "name") || featureProperty(feature, "name:en") || "Transit station";
+  const system = featureProperty(feature, "system") || "Transit station";
+  const lineColors = featureProperty(feature, "lineColors");
+  const lineNames = featureProperty(feature, "lineNames");
+  const linesHtml = lineColors ? `<div class="transit-line-list">${lineBadgesHtml(lineColors, lineNames)}</div>` : "";
+  return `<div class="map-popup transit-popup"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(system)}</span>${linesHtml}</div>`;
 }

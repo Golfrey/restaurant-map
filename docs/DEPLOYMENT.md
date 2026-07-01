@@ -10,6 +10,7 @@ This app deploys to Vercel as a Vite static site plus serverless API functions. 
 - `GET /api/status?city=nyc` reads `meta:<city>` from Upstash.
 - `GET /api/cron/refresh` fetches upstream Resy/inKind data, rebuilds every city payload, and writes successful full refreshes to Upstash.
 - Public users cannot trigger live upstream refreshes. The UI reload button only reloads cached API data.
+- The frontend loads basemap tiles from Protomaps Hosted API/CDN when `VITE_PROTOMAPS_API_KEY` is configured.
 
 ## Vercel Setup
 
@@ -52,11 +53,12 @@ RESY_USER_AGENT=
 RESY_MAX_PAGES=100
 RESY_PER_PAGE=100
 UPSTREAM_TIMEOUT_MS=15000
-VITE_STADIA_MAP_STYLE=https://tiles.stadiamaps.com/styles/stamen_toner_{tone}.json
-VITE_STADIA_MAPS_API_KEY=
+VITE_PROTOMAPS_API_KEY=
+VITE_PROTOMAPS_FLAVOR=black
+VITE_PROTOMAPS_LANGUAGE=en
 ```
 
-`VITE_STADIA_MAPS_API_KEY` is only needed if Stadia domain authentication is not configured for the deployed domain.
+`VITE_PROTOMAPS_API_KEY` makes the browser load a hosted MapLibre style from `https://api.protomaps.com/styles/v5/{flavor}/{language}.json`. The `black` flavor is the closest built-in Protomaps match for the previous dark Stamen Toner look; use `grayscale` for a lighter monochrome basemap. For self-hosted fallback deployments, omit `VITE_PROTOMAPS_API_KEY` and set `VITE_PROTOMAPS_PMTILES_URL` to a PMTiles archive hosted with HTTP range requests and CORS.
 
 Use a random `CRON_SECRET` of at least 16 characters. Vercel sends it to cron endpoints as:
 

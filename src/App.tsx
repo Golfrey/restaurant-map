@@ -49,6 +49,12 @@ function geolocationErrorMessage(error: GeolocationPositionError): string {
   return "Unable to get your location. Try again.";
 }
 
+function locationRequiresSecureContext(): boolean {
+  if (window.isSecureContext) return false;
+  const hostname = window.location.hostname;
+  return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1";
+}
+
 export default function App() {
   const [cityCode, setCityCode] = useState<CityCode>(defaultCityCode);
   const selectedCity = useMemo(() => getCity(cityCode), [cityCode]);
@@ -153,6 +159,11 @@ export default function App() {
   const handleUseLocation = useCallback(() => {
     setLocationError(undefined);
     setOpenPanel(null);
+
+    if (locationRequiresSecureContext()) {
+      setLocationError("Location requires HTTPS or localhost. Open this app over localhost or Tailscale HTTPS.");
+      return;
+    }
 
     if (!navigator.geolocation) {
       setLocationError("Location is not available in this browser.");
@@ -421,8 +432,7 @@ export default function App() {
               {cityData?.cached ? "Cached data" : "Fresh data"} / {generatedLabel}
             </p>
             <p>
-              Data from Resy and inKind. Verify details on the source before booking or purchasing. Independent
-              project.
+              Data from Resy and inKind. Verify details on the source before booking or purchasing. Independent project.
             </p>
           </footer>
         </aside>
