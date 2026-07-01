@@ -19,14 +19,13 @@ import { cn } from "./lib/utils";
 import {
   filterRestaurants,
   filterRestaurantsByBounds,
-  nearbyRadiusMiles,
-  restaurantsWithinRadius,
   topTags,
-  type GeoCoordinates,
   type MapBounds,
   type PriceFilter,
   type SourceFilter
 } from "./appUtils";
+
+const locationViewportZoom = 14;
 
 const MapView = lazy(() => import("./MapView").then((module) => ({ default: module.MapView })));
 
@@ -67,10 +66,13 @@ export default function App() {
   const mapFocusNonceRef = useRef(0);
   const locationRequestNonceRef = useRef(0);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ id: string; nonce: number }>();
-  const [userCoordinates, setUserCoordinates] = useState<GeoCoordinates>();
+  const [locationViewportRequest, setLocationViewportRequest] = useState<{
+    center: { latitude: number; longitude: number };
+    zoom: number;
+    nonce: number;
+  }>();
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string>();
-  const [nearbyMode, setNearbyMode] = useState(false);
 
   useEffect(() => {
     if (!openPanel) return;
@@ -95,53 +97,25 @@ export default function App() {
   }, [openPanel]);
 
   const tagOptions = useMemo(() => topTags(cityData?.restaurants ?? []), [cityData]);
-  const nearbyRestaurants = useMemo(
-    () => (userCoordinates ? restaurantsWithinRadius(cityData?.restaurants ?? [], userCoordinates) : []),
-    [cityData, userCoordinates]
-  );
   const filteredRestaurants = useMemo(
-    () =>
-      nearbyMode
-        ? nearbyRestaurants
-        : filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags, selectedPrices),
-    [cityData, nearbyMode, nearbyRestaurants, query, source, selectedPrices, selectedTags]
+    () => filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags, selectedPrices),
+    [cityData, query, source, selectedPrices, selectedTags]
   );
   const visibleRestaurants = useMemo(
-    () => (nearbyMode ? filteredRestaurants : filterRestaurantsByBounds(filteredRestaurants, viewportBounds)),
-    [filteredRestaurants, nearbyMode, viewportBounds]
+    () => filterRestaurantsByBounds(filteredRestaurants, viewportBounds),
+    [filteredRestaurants, viewportBounds]
   );
-  const mapCenter = useMemo(
-    () => (nearbyMode && userCoordinates ? userCoordinates : selectedCity.center),
-    [nearbyMode, selectedCity.center, userCoordinates]
-  );
-  const mapFitBoundsKey = useMemo(() => {
-    if (!nearbyMode) return cityData?.city;
-    if (!userCoordinates) return undefined;
-    return [
-      "nearby",
-      cityData?.city ?? cityCode,
-      cityData?.generatedAt ?? "pending",
-      userCoordinates.latitude.toFixed(5),
-      userCoordinates.longitude.toFixed(5),
-      nearbyRestaurants.length
-    ].join(":");
-  }, [cityCode, cityData?.city, cityData?.generatedAt, nearbyMode, nearbyRestaurants.length, userCoordinates]);
 
   useEffect(() => {
-    if (!cityData || nearbyMode) return;
+    if (!cityData) return;
     setSelectedId(cityData.restaurants[0]?.id);
-  }, [cityData, nearbyMode]);
-
-  useEffect(() => {
-    if (!nearbyMode) return;
-    setSelectedId(nearbyRestaurants[0]?.id);
-  }, [nearbyMode, nearbyRestaurants]);
+  }, [cityData]);
 
   useEffect(() => {
     locationRequestNonceRef.current += 1;
     setLocating(false);
     setLocationError(undefined);
-    setNearbyMode(false);
+    setLocationViewportRequest(undefined);
     setSelectedTags([]);
     setSelectedPrices([]);
     setSelectedId(undefined);
@@ -155,9 +129,7 @@ export default function App() {
   const generatedLabel = cityData?.generatedAt ? new Date(cityData.generatedAt).toLocaleString() : "Waiting for data";
   const activeFilterCount = (source === "all" ? 0 : 1) + selectedPrices.length + selectedTags.length;
   const restaurantListEmptyMessage =
-    nearbyMode
-      ? `No restaurants within ${nearbyRadiusMiles} miles of your location.`
-      : viewportBounds && filteredRestaurants.length
+    viewportBounds && filteredRestaurants.length
       ? "No restaurants in the current map view."
       : "No restaurants match the current filters.";
 
@@ -176,6 +148,62 @@ export default function App() {
     setSource("all");
     setSelectedTags([]);
     setSelectedPrices([]);
+  }, []);
+
+  const handleUseLocation = useCallback(() => {
+    setLocationError(undefined);
+    setOpenPanel(null);
+
+    if (!navigator.geolocation) {
+      setLocationError("Location is not available in this browser.");
+      return;
+    }
+
+    const requestNonce = locationRequestNonceRef.current + 1;
+    locationRequestNonceRef.current = requestNonce;
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (locationRequestNonceRef.current !== requestNonce) return;
+
+        setLocationError(undefined);
+        setLocating(false);
+        setLocationViewportRequest({
+          center: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          },
+          zoom: locationViewportZoom,
+          nonce: requestNonce
+        });
+        setSelectedId(undefined);
+        setMapFocusRequest(undefined);
+        setViewportBounds(undefined);
+      },
+      (geoError) => {
+        if (locationRequestNonceRef.current !== requestNonce) return;
+        setLocationError(geolocationErrorMessage(geoError));
+        setLocating(false);
+      },
+      {
+        enableHighAccuracy: false,
+        maximumAge: 300000,
+        timeout: 10000
+      }
+    );
+  }, []);
+
+  const handleCityChange = useCallback((nextCityCode: CityCode) => {
+    locationRequestNonceRef.current += 1;
+    setLocating(false);
+    setLocationError(undefined);
+    setLocationViewportRequest(undefined);
+    setSelectedId(undefined);
+    setMapFocusRequest(undefined);
+    setViewportBounds(undefined);
+    setCityCode(nextCityCode);
+    setOpenPanel(null);
   }, []);
 
   function toggleTag(tag: string) {
@@ -247,6 +275,19 @@ export default function App() {
                   <SlidersHorizontal className="size-3.5" />
                   <span>{activeFilterCount ? `Filters ${activeFilterCount}` : "Filters"}</span>
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-2.5"
+                  onClick={handleUseLocation}
+                  disabled={locating}
+                  aria-label="Use my location"
+                  type="button"
+                  title="Use my location"
+                >
+                  <LocateFixed className={cn("size-3.5", locating && "animate-pulse")} />
+                  <span className="max-sm:hidden">{locating ? "Locating" : "Use my location"}</span>
+                </Button>
               </div>
 
               <div className="relative">
@@ -282,14 +323,7 @@ export default function App() {
                     <X className="size-4" />
                   </Button>
                 </div>
-                <CitySelector
-                  cities={supportedCities}
-                  value={cityCode}
-                  onChange={(nextCityCode) => {
-                    setCityCode(nextCityCode);
-                    setOpenPanel(null);
-                  }}
-                />
+                <CitySelector cities={supportedCities} value={cityCode} onChange={handleCityChange} />
               </div>
             ) : null}
 
@@ -364,6 +398,11 @@ export default function App() {
               <CardContent className="p-3 text-sm">{error}</CardContent>
             </Card>
           ) : null}
+          {locationError ? (
+            <Card className="mx-4 mb-3 border-destructive/40 bg-destructive/10 text-destructive shadow-none">
+              <CardContent className="p-3 text-sm">{locationError}</CardContent>
+            </Card>
+          ) : null}
           {loading ? (
             <Card className="mx-4 mb-3 border-inkind/20 bg-inkind/10 shadow-none">
               <CardContent className="p-3 text-sm">Loading restaurants...</CardContent>
@@ -389,9 +428,10 @@ export default function App() {
               selectedId={selectedRestaurant?.id}
               focusRequest={mapFocusRequest}
               cityCenter={selectedCity.center}
+              viewportRequest={locationViewportRequest}
               onSelect={selectRestaurant}
               onViewportChange={handleViewportChange}
-              fitBoundsKey={cityData?.city}
+              fitBoundsKey={locationViewportRequest ? undefined : cityData?.city}
             />
           </Suspense>
           <RestaurantDetails restaurant={selectedRestaurant} />

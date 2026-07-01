@@ -13,15 +13,34 @@ interface MockMapViewProps {
     id: string;
   };
   cityCenter: CityCenter;
+  viewportRequest?: {
+    center: CityCenter;
+    zoom: number;
+    nonce: number;
+  };
   onViewportChange?: (bounds: MapBounds) => void;
+  fitBoundsKey?: string;
 }
 
 vi.mock("./MapView", () => ({
-  MapView: ({ restaurants, onSelect, focusRequest, cityCenter, onViewportChange }: MockMapViewProps) => (
+  MapView: ({
+    restaurants,
+    onSelect,
+    focusRequest,
+    cityCenter,
+    viewportRequest,
+    onViewportChange,
+    fitBoundsKey
+  }: MockMapViewProps) => (
     <div
       data-testid="map"
       data-focus-id={focusRequest?.id ?? ""}
       data-center={`${cityCenter.latitude},${cityCenter.longitude}`}
+      data-viewport-center={
+        viewportRequest ? `${viewportRequest.center.latitude},${viewportRequest.center.longitude}` : ""
+      }
+      data-viewport-zoom={viewportRequest?.zoom ?? ""}
+      data-fit-key={fitBoundsKey ?? ""}
       data-restaurants={restaurants.map((restaurant) => restaurant.name).join("|")}
     >
       <button
@@ -113,8 +132,37 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+const originalGeolocationDescriptor = Object.getOwnPropertyDescriptor(window.navigator, "geolocation");
+
+function mockGeolocation(getCurrentPosition: Geolocation["getCurrentPosition"]) {
+  Object.defineProperty(window.navigator, "geolocation", {
+    configurable: true,
+    value: { getCurrentPosition }
+  });
+}
+
+function geolocationPosition(latitude: number, longitude: number): GeolocationPosition {
+  return {
+    coords: {
+      latitude,
+      longitude,
+      accuracy: 10,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null
+    },
+    timestamp: Date.now()
+  } as GeolocationPosition;
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  if (originalGeolocationDescriptor) {
+    Object.defineProperty(window.navigator, "geolocation", originalGeolocationDescriptor);
+  } else {
+    Reflect.deleteProperty(window.navigator, "geolocation");
+  }
 });
 
 test("renders map data and source links", async () => {
@@ -223,6 +271,207 @@ test("preserves the current map viewport when filters change", async () => {
   expect(within(list).queryByRole("button", { name: /Sushi Ouji/i })).not.toBeInTheDocument();
   expect(screen.getByText("No restaurants in the current map view.")).toBeInTheDocument();
   expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Sushi Ouji");
+});
+
+test("uses browser location to move the map without filtering city restaurants", async () => {
+  const cityPayload: RestaurantResponse = {
+    city: "nyc",
+    generatedAt: "2026-06-30T17:00:00.000Z",
+    cacheTtlHours: 12,
+    sourceCounts: { resy: 3, inkind: 0, both: 0, total: 3 },
+    restaurants: [
+      {
+        id: "resy:midtown",
+        source: "resy",
+        sourceIds: { resy: 10 },
+        name: "Midtown Meal",
+        latitude: 40.726,
+        longitude: -74.006,
+        cuisines: ["American"],
+        tags: [],
+        price: "$$",
+        sourceUrls: { resy: "https://resy.com/midtown" }
+      },
+      {
+        id: "resy:far",
+        source: "resy",
+        sourceIds: { resy: 11 },
+        name: "Far Uptown",
+        latitude: 40.9,
+        longitude: -74.006,
+        cuisines: ["American"],
+        tags: [],
+        price: "$$",
+        sourceUrls: { resy: "https://resy.com/far" }
+      },
+      {
+        id: "resy:close",
+        source: "resy",
+        sourceIds: { resy: 12 },
+        name: "Closer Cafe",
+        latitude: 40.713,
+        longitude: -74.006,
+        cuisines: ["Cafe"],
+        tags: [],
+        price: "$",
+        sourceUrls: { resy: "https://resy.com/close" }
+      }
+    ]
+  };
+  const getCurrentPosition = vi.fn((success: PositionCallback) => {
+    success(geolocationPosition(40.7128, -74.006));
+  });
+  mockGeolocation(getCurrentPosition as Geolocation["getCurrentPosition"]);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => cityPayload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Midtown Meal" })).toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole("button", { name: "Use my location" }));
+
+  expect(screen.getByRole("heading", { name: "New York City Restaurant Map" })).toBeInTheDocument();
+  expect(screen.getByText("3 shown")).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-center", "40.7128,-74.006");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-viewport-center", "40.7128,-74.006");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-viewport-zoom", "14");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-fit-key", "");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Midtown Meal|Far Uptown|Closer Cafe");
+
+  await userEvent.click(screen.getByRole("button", { name: "simulate lower manhattan viewport" }));
+
+  const list = screen.getByLabelText("Restaurants");
+  expect(within(list).getByRole("button", { name: /Closer Cafe/i })).toBeInTheDocument();
+  expect(within(list).queryByRole("button", { name: /Midtown Meal/i })).not.toBeInTheDocument();
+  expect(within(list).queryByRole("button", { name: /Far Uptown/i })).not.toBeInTheDocument();
+  expect(screen.getByText("1 shown")).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Midtown Meal|Far Uptown|Closer Cafe");
+});
+
+test("filters city restaurants after using browser location without moving the map again", async () => {
+  const cityPayload: RestaurantResponse = {
+    city: "nyc",
+    generatedAt: "2026-06-30T17:00:00.000Z",
+    cacheTtlHours: 12,
+    sourceCounts: { resy: 2, inkind: 0, both: 0, total: 2 },
+    restaurants: [
+      {
+        id: "resy:midtown",
+        source: "resy",
+        sourceIds: { resy: 10 },
+        name: "Midtown Meal",
+        latitude: 40.72,
+        longitude: -74.006,
+        cuisines: ["American"],
+        tags: [],
+        price: "$$",
+        sourceUrls: { resy: "https://resy.com/midtown" }
+      },
+      {
+        id: "resy:close",
+        source: "resy",
+        sourceIds: { resy: 12 },
+        name: "Closer Cafe",
+        latitude: 40.713,
+        longitude: -74.006,
+        cuisines: ["Cafe"],
+        tags: [],
+        price: "$",
+        sourceUrls: { resy: "https://resy.com/close" }
+      }
+    ]
+  };
+  const getCurrentPosition = vi.fn((success: PositionCallback) => {
+    success(geolocationPosition(40.7128, -74.006));
+  });
+  mockGeolocation(getCurrentPosition as Geolocation["getCurrentPosition"]);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => cityPayload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Midtown Meal" })).toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole("button", { name: "Use my location" }));
+  expect(screen.getByRole("heading", { name: "New York City Restaurant Map" })).toBeInTheDocument();
+  const fitKeyBeforeFilter = screen.getByTestId("map").getAttribute("data-fit-key");
+  const viewportCenterBeforeFilter = screen.getByTestId("map").getAttribute("data-viewport-center");
+
+  await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+  await userEvent.click(within(screen.getByLabelText("Price filter")).getByRole("button", { name: "$$" }));
+
+  expect(screen.getByRole("heading", { name: "Midtown Meal" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Closer Cafe/i })).not.toBeInTheDocument();
+  expect(screen.getByText("1 shown")).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Midtown Meal");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-fit-key", fitKeyBeforeFilter);
+  expect(screen.getByTestId("map")).toHaveAttribute("data-viewport-center", viewportCenterBeforeFilter);
+});
+
+test("shows a message when browser geolocation fails", async () => {
+  const getCurrentPosition = vi.fn((_success: PositionCallback, error?: PositionErrorCallback) => {
+    error?.({ code: 1 } as GeolocationPositionError);
+  });
+  mockGeolocation(getCurrentPosition as Geolocation["getCurrentPosition"]);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole("button", { name: "Use my location" }));
+
+  expect(screen.getByText("Location permission was denied. Enable location access and try again.")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "New York City Restaurant Map" })).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-center", "40.7128,-74.006");
+});
+
+test("switching cities clears a location viewport request", async () => {
+  const getCurrentPosition = vi.fn((success: PositionCallback) => {
+    success(geolocationPosition(40.7128, -74.006));
+  });
+  mockGeolocation(getCurrentPosition as Geolocation["getCurrentPosition"]);
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ...restaurantResponse("LA Spot", "resy:20"),
+        city: "la" as const
+      })
+    });
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+  await userEvent.click(screen.getByRole("button", { name: "Use my location" }));
+  expect(screen.getByTestId("map")).toHaveAttribute("data-viewport-center", "40.7128,-74.006");
+
+  await userEvent.click(screen.getByRole("button", { name: /Change city/i }));
+  await userEvent.click(screen.getByRole("button", { name: /Los Angeles/i }));
+
+  await waitFor(() => expect(screen.getByRole("heading", { name: "LA Spot" })).toBeInTheDocument());
+  expect(screen.getByRole("heading", { name: "Los Angeles Restaurant Map" })).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-center", "34.0522,-118.2437");
+  expect(screen.getByTestId("map")).toHaveAttribute("data-viewport-center", "");
 });
 
 test("searches and switches supported cities", async () => {

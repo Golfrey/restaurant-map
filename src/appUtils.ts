@@ -12,13 +12,6 @@ export interface MapBounds {
   north: number;
 }
 
-export interface GeoCoordinates {
-  latitude: number;
-  longitude: number;
-}
-
-export const nearbyRadiusMiles = 10;
-
 export { restaurantLabels };
 
 export function restaurantMatchesSource(restaurant: Restaurant, source: SourceFilter): boolean {
@@ -76,40 +69,6 @@ export function filterRestaurantsByBounds(restaurants: Restaurant[], bounds: Map
 
     return inLatitude && inLongitude;
   });
-}
-
-function radians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}
-
-export function distanceMilesBetween(from: GeoCoordinates, to: GeoCoordinates): number {
-  const earthRadiusMiles = 3958.7613;
-  const latitudeDelta = radians(to.latitude - from.latitude);
-  const longitudeDelta = radians(to.longitude - from.longitude);
-  const fromLatitude = radians(from.latitude);
-  const toLatitude = radians(to.latitude);
-  const halfChord =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) ** 2;
-
-  return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(halfChord), Math.sqrt(1 - halfChord));
-}
-
-export function restaurantsWithinRadius(
-  restaurants: Restaurant[],
-  center: GeoCoordinates,
-  radiusMiles = nearbyRadiusMiles
-): Restaurant[] {
-  return restaurants
-    .map((restaurant) => ({
-      ...restaurant,
-      distanceMiles: distanceMilesBetween(center, {
-        latitude: restaurant.latitude,
-        longitude: restaurant.longitude
-      })
-    }))
-    .filter((restaurant) => restaurant.distanceMiles <= radiusMiles)
-    .sort((a, b) => a.distanceMiles - b.distanceMiles || a.name.localeCompare(b.name));
 }
 
 export function topTags(restaurants: Restaurant[], limit = 18): string[] {

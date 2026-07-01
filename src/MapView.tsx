@@ -27,6 +27,11 @@ interface MapViewProps {
     nonce: number;
   };
   cityCenter: CityCenter;
+  viewportRequest?: {
+    center: CityCenter;
+    zoom: number;
+    nonce: number;
+  };
   onSelect: (restaurant: Restaurant) => void;
   onViewportChange?: (bounds: MapBounds) => void;
   fitBoundsKey?: string;
@@ -78,6 +83,7 @@ function MapViewComponent({
   selectedId,
   focusRequest,
   cityCenter,
+  viewportRequest,
   onSelect,
   onViewportChange,
   fitBoundsKey
@@ -218,6 +224,21 @@ function MapViewComponent({
       duration: 450
     });
   }, [cityCenter]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !viewportRequest) return;
+
+    popupRef.current?.remove();
+    popupRef.current = null;
+    popupRestaurantIdRef.current = null;
+
+    map.easeTo({
+      center: [viewportRequest.center.longitude, viewportRequest.center.latitude],
+      zoom: viewportRequest.zoom,
+      duration: 450
+    });
+  }, [viewportRequest]);
 
   useEffect(() => {
     const map = mapRef.current;
