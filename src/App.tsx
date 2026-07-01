@@ -416,8 +416,14 @@ export default function App() {
             emptyMessage={restaurantListEmptyMessage}
           />
 
-          <footer className="shrink-0 border-t px-4 py-3 text-xs text-muted-foreground">
-            {cityData?.cached ? "Cached data" : "Fresh data"} / {generatedLabel}
+          <footer className="shrink-0 space-y-1 border-t bg-background px-4 py-3 text-sm leading-5 text-muted-foreground">
+            <p>
+              {cityData?.cached ? "Cached data" : "Fresh data"} / {generatedLabel}
+            </p>
+            <p>
+              Data from Resy and inKind. Verify details on the source before booking or purchasing. Independent
+              project.
+            </p>
           </footer>
         </aside>
 
