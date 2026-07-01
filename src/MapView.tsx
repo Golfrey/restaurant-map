@@ -17,7 +17,6 @@ import {
   sourceId,
   type MapTone
 } from "./map/restaurantMap";
-import "maplibre-gl/dist/maplibre-gl.css";
 
 interface MapViewProps {
   restaurants: Restaurant[];
