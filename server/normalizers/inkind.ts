@@ -4,6 +4,10 @@ import { distanceMiles, withinRadius } from "../geo";
 import type { InKindBrand, InKindLocation, InKindTag } from "./types";
 import { cloudinaryUrl, compactStrings, priceFromInKind } from "./utils";
 
+function isCuisineTag(tag: InKindTag): boolean {
+  return tag.category?.toLowerCase() === "cuisine type";
+}
+
 export function normalizeInKindLocation(
   location: InKindLocation,
   brand: InKindBrand | undefined,
@@ -28,12 +32,16 @@ export function normalizeInKindLocation(
   const rawTagIds = [...(brand?.tags ?? []), ...(location.tags ?? [])]
     .map((tag) => tag.id)
     .filter((id): id is number => Number.isFinite(id));
-  const tagNames = compactStrings(rawTagIds.map((id) => tagsById.get(id)?.name));
+  const rawTags = rawTagIds.map((id) => tagsById.get(id)).filter((tag): tag is InKindTag => Boolean(tag));
   const cuisineTags = compactStrings(
-    rawTagIds
-      .map((id) => tagsById.get(id))
-      .filter((tag) => tag?.category === "Cuisine Type")
-      .map((tag) => tag?.name)
+    rawTags
+      .filter((tag) => isCuisineTag(tag))
+      .map((tag) => tag.name)
+  );
+  const tagNames = compactStrings(
+    rawTags
+      .filter((tag) => !isCuisineTag(tag))
+      .map((tag) => tag.name)
   );
 
   return {

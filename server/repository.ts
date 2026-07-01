@@ -1,4 +1,5 @@
 import type { Restaurant, RestaurantResponse } from "../shared/types";
+import { sanitizeRestaurantLabels } from "../shared/labels";
 import type { AppConfig } from "./config";
 import { isCacheFresh, readCache, writeCache } from "./cache";
 import { dedupeRestaurants } from "./dedupe";
@@ -29,6 +30,15 @@ function sourceCounts(restaurants: Restaurant[]): RestaurantResponse["sourceCoun
   };
 }
 
+function sanitizeRestaurantPayload(payload: RestaurantResponse): RestaurantResponse {
+  const restaurants = payload.restaurants.map(sanitizeRestaurantLabels);
+  return {
+    ...payload,
+    restaurants,
+    sourceCounts: sourceCounts(restaurants)
+  };
+}
+
 export async function buildRestaurantPayload(config: AppConfig, options: LoadOptions = {}): Promise<RestaurantResponse> {
   const resyFetcher = options.fetchResy ?? fetchResyRestaurants;
   const inKindFetcher = options.fetchInKind ?? fetchInKindRestaurants;
@@ -52,7 +62,7 @@ export async function buildRestaurantPayload(config: AppConfig, options: LoadOpt
 
   const resy = resyResult.status === "fulfilled" ? resyResult.value : [];
   const inkind = inKindResult.status === "fulfilled" ? inKindResult.value : [];
-  const restaurants = dedupeRestaurants(resy, inkind);
+  const restaurants = dedupeRestaurants(resy, inkind).map(sanitizeRestaurantLabels);
 
   const payload: RestaurantResponse = {
     city: config.city.code,
@@ -97,7 +107,8 @@ async function loadRestaurantsFromSources(
 }
 
 export async function loadRestaurants(config: AppConfig, options: LoadOptions = {}): Promise<RestaurantResponse> {
-  const cached = await readCache(config.cacheDir, config.city.code);
+  const rawCached = await readCache(config.cacheDir, config.city.code);
+  const cached = rawCached ? sanitizeRestaurantPayload(rawCached) : null;
   if (!options.refresh && cached && isCacheFresh(cached, config.cacheTtlHours, options.now)) {
     return { ...cached, cached: true };
   }

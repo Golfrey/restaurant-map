@@ -66,6 +66,43 @@ describe("loadRestaurants cache behavior", () => {
     expect(cached.restaurants[0].name).toBe("Test Restaurant");
   });
 
+  test("normalizes duplicate labels from fresh cache", async () => {
+    const config = await tempConfig();
+    await fs.mkdir(config.cacheDir, { recursive: true });
+    await fs.writeFile(
+      cachePath(config.cacheDir, config.city.code),
+      JSON.stringify({
+        city: config.city.code,
+        generatedAt: "2026-06-30T17:00:00.000Z",
+        cacheTtlHours: 12,
+        sourceCounts: { resy: 1, inkind: 0, both: 0, total: 1 },
+        restaurants: [
+          {
+            ...baseRestaurant,
+            cuisines: ["Cafe", "Cafe "],
+            tags: ["Cafe", "Dinner", "dinner"]
+          }
+        ]
+      })
+    );
+
+    const cached = await loadRestaurants(config, {
+      now: new Date("2026-06-30T18:00:00Z"),
+      fetchResy: async () => {
+        throw new Error("should not fetch");
+      },
+      fetchInKind: async () => {
+        throw new Error("should not fetch");
+      }
+    });
+
+    expect(cached.cached).toBe(true);
+    expect(cached.restaurants[0]).toMatchObject({
+      cuisines: ["Cafe"],
+      tags: ["Dinner"]
+    });
+  });
+
   test("keeps cache files scoped by city", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "resy-inkind-city-test-"));
     const nycConfig = { ...getConfig("nyc"), cacheDir: dir, cacheTtlHours: 12 };

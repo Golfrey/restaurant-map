@@ -37,6 +37,7 @@ const payload: RestaurantResponse = {
       neighborhood: "Lower Manhattan",
       cuisines: ["French"],
       tags: ["Dinner"],
+      price: "$$$",
       sourceUrls: { resy: "https://resy.com/a", inkind: "https://inkind.com/a" }
     },
     {
@@ -48,6 +49,7 @@ const payload: RestaurantResponse = {
       longitude: -74.0027,
       cuisines: ["Japanese"],
       tags: [],
+      price: "$$",
       sourceUrls: { resy: "https://resy.com/b" }
     }
   ]
@@ -69,6 +71,7 @@ function restaurantResponse(name: string, id: string): RestaurantResponse {
         longitude: -74.0068,
         cuisines: ["Test"],
         tags: [],
+        price: "$$",
         sourceUrls: { resy: "https://resy.com/test" }
       }
     ]
@@ -105,9 +108,28 @@ test("renders map data and source links", async () => {
   expect(screen.getByRole("link", { name: "Open Resy" })).toHaveAttribute("href", "https://resy.com/a");
   expect(screen.getByRole("link", { name: "Open inKind" })).toHaveAttribute("href", "https://inkind.com/a");
 
-  await userEvent.type(screen.getByPlaceholderText("Search restaurants, cuisines, tags"), "sushi");
+  await userEvent.type(screen.getByPlaceholderText("Search restaurants, labels"), "sushi");
   expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Le Gratin/i })).not.toBeInTheDocument();
+});
+
+test("filters restaurants by price", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  await userEvent.click(within(screen.getByLabelText("Price filter")).getByRole("button", { name: "$$" }));
+
+  expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Le Gratin/i })).not.toBeInTheDocument();
+  expect(screen.getByText("1 shown")).toBeInTheDocument();
 });
 
 test("requests map focus when a restaurant is selected from the list", async () => {

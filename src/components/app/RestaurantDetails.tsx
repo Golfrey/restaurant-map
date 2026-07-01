@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import type { Restaurant } from "../../../shared/types";
-import { formatAddress, safeExternalUrl } from "../../appUtils";
+import { formatAddress, restaurantLabels, safeExternalUrl } from "../../appUtils";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { buttonVariants } from "../ui/button";
@@ -16,7 +16,7 @@ export function RestaurantDetails({ restaurant }: { restaurant?: Restaurant }) {
     );
   }
 
-  const tags = [...restaurant.cuisines, ...restaurant.tags].slice(0, 12);
+  const tags = restaurantLabels(restaurant).slice(0, 12);
   const resyUrl = safeExternalUrl(restaurant.sourceUrls.resy, "resy.com");
   const inKindUrl = safeExternalUrl(restaurant.sourceUrls.inkind, "inkind.com");
 

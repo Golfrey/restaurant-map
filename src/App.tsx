@@ -3,6 +3,7 @@ import { MapPin, RefreshCw, Search, Utensils } from "lucide-react";
 import { defaultCityCode, getCity, supportedCities, type CityCode } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
 import { CitySelector } from "./components/app/CitySelector";
+import { PriceFilters } from "./components/app/PriceFilters";
 import { RestaurantDetails } from "./components/app/RestaurantDetails";
 import { RestaurantList } from "./components/app/RestaurantList";
 import { SidebarSection } from "./components/app/SidebarSection";
@@ -15,7 +16,7 @@ import { Input } from "./components/ui/input";
 import { useRestaurantData } from "./hooks/useRestaurantData";
 import { useTheme } from "./hooks/useTheme";
 import { cn } from "./lib/utils";
-import { filterRestaurants, topTags, type SourceFilter } from "./appUtils";
+import { filterRestaurants, topTags, type PriceFilter, type SourceFilter } from "./appUtils";
 
 const MapView = lazy(() => import("./MapView").then((module) => ({ default: module.MapView })));
 
@@ -28,6 +29,7 @@ export default function App() {
   const [source, setSource] = useState<SourceFilter>("all");
   const [theme, setTheme] = useTheme();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedPrices, setSelectedPrices] = useState<PriceFilter[]>([]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const mapFocusNonceRef = useRef(0);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ id: string; nonce: number }>();
@@ -39,14 +41,15 @@ export default function App() {
 
   useEffect(() => {
     setSelectedTags([]);
+    setSelectedPrices([]);
     setSelectedId(undefined);
     setMapFocusRequest(undefined);
   }, [cityCode]);
 
   const tagOptions = useMemo(() => topTags(cityData?.restaurants ?? []), [cityData]);
   const restaurants = useMemo(
-    () => filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags),
-    [cityData, query, source, selectedTags]
+    () => filterRestaurants(cityData?.restaurants ?? [], query, source, selectedTags, selectedPrices),
+    [cityData, query, source, selectedTags, selectedPrices]
   );
   const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === selectedId) ?? restaurants[0];
   const generatedLabel = cityData?.generatedAt ? new Date(cityData.generatedAt).toLocaleString() : "Waiting for data";
@@ -59,6 +62,12 @@ export default function App() {
 
   function toggleTag(tag: string) {
     setSelectedTags((current) => (current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag]));
+  }
+
+  function togglePrice(price: PriceFilter) {
+    setSelectedPrices((current) =>
+      current.includes(price) ? current.filter((item) => item !== price) : [...current, price]
+    );
   }
 
   return (
@@ -102,7 +111,7 @@ export default function App() {
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search restaurants, cuisines, tags"
+                  placeholder="Search restaurants, labels"
                   className="h-10 rounded-lg bg-muted/35 pl-9"
                 />
               </div>
@@ -112,8 +121,12 @@ export default function App() {
               <SourceFilters value={source} onChange={setSource} />
             </SidebarSection>
 
-            <SidebarSection title="Cuisines and tags">
-              <div className="flex max-h-28 flex-wrap gap-2 overflow-auto pr-1" aria-label="Tag filters">
+            <SidebarSection title="Price">
+              <PriceFilters value={selectedPrices} onToggle={togglePrice} />
+            </SidebarSection>
+
+            <SidebarSection title="Labels">
+              <div className="flex max-h-28 flex-wrap gap-2 overflow-auto pr-1" aria-label="Label filters">
                 {tagOptions.map((tag) => (
                   <Button
                     key={tag}

@@ -35,9 +35,31 @@ test("normalizes and filters inKind map locations", () => {
     sourceIds: { inkindLocationId: 44, inkindBrandId: 12 },
     name: "Le Gratin",
     cuisines: ["French"],
-    tags: ["French", "Newly Added"],
+    tags: ["Newly Added"],
     price: "$$"
   });
+});
+
+test("keeps inKind cuisine labels out of tags", () => {
+  const tagsById = new Map([
+    [1, { id: 1, name: "Cafe", category: "Cuisine Type" }],
+    [2, { id: 2, name: "Outdoor Seating", category: "Feature" }]
+  ]);
+  const restaurant = normalizeInKindLocation(
+    {
+      ...inKindFixture.locations[0],
+      tags: [{ id: 1 }, { id: 2 }]
+    },
+    {
+      ...inKindFixture.brands[0],
+      tags: [{ id: 1 }]
+    },
+    tagsById,
+    city
+  );
+
+  expect(restaurant?.cuisines).toEqual(["Cafe"]);
+  expect(restaurant?.tags).toEqual(["Outdoor Seating"]);
 });
 
 describe("dedupeRestaurants", () => {
