@@ -16,14 +16,12 @@ function writeThemeCookie(theme: Theme) {
 }
 
 function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
 
   const stored = readThemeCookie();
   if (stored) return stored;
 
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return "dark";
 }
 
 export function useTheme(): [Theme, Dispatch<SetStateAction<Theme>>] {
