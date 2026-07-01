@@ -30,8 +30,6 @@ const defaultProtomapsUrl = "/maps/protomaps.pmtiles";
 const defaultProtomapsLanguage = "en";
 const protomapsGlyphsUrl = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
 const protomapsSpriteBaseUrl = "https://protomaps.github.io/basemaps-assets/sprites/v4";
-const transitStationIconImageId = "restaurant-map-transit-station";
-const transitStationIconSize = 28;
 const detailedTransitCoverage: MultiPolygon = {
   type: "MultiPolygon",
   coordinates: [
@@ -154,87 +152,6 @@ function lineBadgesHtml(lineColors: string, lineNames: string): string {
 function featureProperty(feature: MapGeoJSONFeature, key: string): string {
   const value = feature.properties?.[key];
   return typeof value === "string" ? value : "";
-}
-
-function drawRoundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + radius);
-  context.lineTo(x + width, y + height - radius);
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  context.lineTo(x + radius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.closePath();
-}
-
-function createTransitStationIcon(): { image: ImageData; pixelRatio: number } | null {
-  const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
-  const canvas = document.createElement("canvas");
-  canvas.width = transitStationIconSize * pixelRatio;
-  canvas.height = transitStationIconSize * pixelRatio;
-
-  const context = canvas.getContext("2d");
-  if (!context) return null;
-
-  context.scale(pixelRatio, pixelRatio);
-  context.clearRect(0, 0, transitStationIconSize, transitStationIconSize);
-
-  context.fillStyle = "rgba(7, 17, 28, 0.94)";
-  context.beginPath();
-  context.arc(14, 14, 12, 0, Math.PI * 2);
-  context.fill();
-
-  context.strokeStyle = "rgba(255, 255, 255, 0.95)";
-  context.lineWidth = 1.75;
-  context.stroke();
-
-  context.fillStyle = "#dff4ff";
-  drawRoundedRect(context, 7.5, 5.5, 13, 14.5, 3);
-  context.fill();
-
-  context.fillStyle = "#12324c";
-  drawRoundedRect(context, 9.5, 8, 9, 4.5, 1.2);
-  context.fill();
-
-  context.fillStyle = "#12324c";
-  context.beginPath();
-  context.arc(11, 16.3, 1.25, 0, Math.PI * 2);
-  context.arc(17, 16.3, 1.25, 0, Math.PI * 2);
-  context.fill();
-
-  context.strokeStyle = "#dff4ff";
-  context.lineWidth = 1.6;
-  context.lineCap = "round";
-  context.beginPath();
-  context.moveTo(10.5, 22.5);
-  context.lineTo(13, 19.5);
-  context.moveTo(17.5, 22.5);
-  context.lineTo(15, 19.5);
-  context.stroke();
-
-  return {
-    image: context.getImageData(0, 0, canvas.width, canvas.height),
-    pixelRatio
-  };
-}
-
-function ensureTransitStationIcon(map: maplibregl.Map) {
-  if (map.hasImage(transitStationIconImageId)) return;
-
-  const icon = createTransitStationIcon();
-  if (icon) {
-    map.addImage(transitStationIconImageId, icon.image, { pixelRatio: icon.pixelRatio });
-  }
 }
 
 export function mapStyle(tone: MapTone): string | maplibregl.StyleSpecification {
@@ -376,7 +293,6 @@ export function addTransitStationLayers(map: maplibregl.Map) {
   const mapSourceId = protomapsMapSourceId(map);
 
   const beforeRestaurantLayers = map.getLayer(clusterLayerId) ? clusterLayerId : undefined;
-  ensureTransitStationIcon(map);
   if (!map.getSource(transitStationDetailsSourceId)) {
     map.addSource(transitStationDetailsSourceId, {
       type: "geojson",
@@ -414,20 +330,17 @@ export function addTransitStationLayers(map: maplibregl.Map) {
     map.addLayer(
       {
         id: transitStationIconLayerId,
-        type: "symbol",
+        type: "circle",
         source: mapSourceId,
         "source-layer": "pois",
         minzoom: 11,
         filter: stationIconFilter,
-        layout: {
-          "icon-image": transitStationIconImageId,
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 1.05, 14, 1.25, 16, 1.45],
-          "icon-allow-overlap": true,
-          "icon-ignore-placement": false,
-          "icon-padding": 2
-        },
         paint: {
-          "icon-opacity": 0.82
+          "circle-color": "#a8d4e6",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3, 14, 4, 16, 5],
+          "circle-stroke-color": "rgba(6, 12, 20, 0.9)",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 15, 1.5],
+          "circle-opacity": 0.78
         }
       },
       beforeRestaurantLayers
@@ -467,16 +380,16 @@ export function addTransitStationLayers(map: maplibregl.Map) {
     map.addLayer(
       {
         id: transitStationDetailsIconLayerId,
-        type: "symbol",
+        type: "circle",
         source: transitStationDetailsSourceId,
         minzoom: 9.5,
         filter: detailedStationIconFilter,
-        layout: {
-          "icon-image": transitStationIconImageId,
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 9.5, 1, 11, 1.15, 14, 1.4, 16, 1.6],
-          "icon-allow-overlap": true,
-          "icon-ignore-placement": false,
-          "icon-padding": 2
+        paint: {
+          "circle-color": ["match", ["get", "system"], "DC Metro", "#b7dded", "#a8d4e6"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 9.5, 3, 11, 3.4, 14, 4.4, 16, 5.2],
+          "circle-stroke-color": "rgba(6, 12, 20, 0.9)",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 9.5, 1, 15, 1.5],
+          "circle-opacity": 0.8
         }
       },
       beforeRestaurantLayers
