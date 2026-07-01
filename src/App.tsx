@@ -52,7 +52,18 @@ const MapView = lazy(() => import("./MapView").then((module) => ({ default: modu
 
 function currentMobileViewportHeight(): number {
   if (typeof window === "undefined") return defaultMobileViewportHeight;
-  return Math.round(window.visualViewport?.height ?? window.innerHeight ?? defaultMobileViewportHeight);
+  const documentHeight =
+    typeof document === "undefined" ? 0 : document.documentElement.clientHeight || document.body?.clientHeight || 0;
+  return Math.round(documentHeight || window.innerHeight || defaultMobileViewportHeight);
+}
+
+function textEntryElementIsFocused(): boolean {
+  if (typeof document === "undefined") return false;
+
+  const activeElement = document.activeElement;
+  const tagName = activeElement?.tagName;
+  if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return true;
+  return typeof HTMLElement !== "undefined" && activeElement instanceof HTMLElement && activeElement.isContentEditable;
 }
 
 function mobileLayoutMatches(): boolean {
@@ -125,8 +136,14 @@ export default function App() {
 
   useEffect(() => {
     const handleResize = () => {
-      setMobileViewportHeight(currentMobileViewportHeight());
-      setIsMobileLayout(mobileLayoutMatches());
+      const nextIsMobileLayout = mobileLayoutMatches();
+      const nextViewportHeight = currentMobileViewportHeight();
+      setMobileViewportHeight((currentHeight) =>
+        nextIsMobileLayout && textEntryElementIsFocused() && nextViewportHeight < currentHeight
+          ? currentHeight
+          : nextViewportHeight
+      );
+      setIsMobileLayout(nextIsMobileLayout);
     };
     const mediaQuery = typeof window.matchMedia === "function" ? window.matchMedia(mobileLayoutQuery) : undefined;
     const visualViewport = window.visualViewport;
@@ -470,7 +487,7 @@ export default function App() {
                       setMobileSheetView("results");
                       setQuery(event.target.value);
                     }}
-                    onFocus={() => setMobileSheetState((current) => (current === "collapsed" ? "half" : current))}
+                    onFocus={() => setOpenPanel(null)}
                     placeholder="Search restaurants, labels"
                     className="h-9 rounded-lg bg-muted/35 pl-9"
                   />
@@ -484,7 +501,7 @@ export default function App() {
                   id="city-popover"
                   role="dialog"
                   aria-label="City selector"
-                  className="absolute left-3 right-3 top-[calc(100%-0.25rem)] z-30 grid max-h-[min(62vh,520px)] gap-3 overflow-auto rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl"
+                  className="mobile-sheet-popover absolute left-3 right-3 top-[calc(100%-0.25rem)] z-30 grid max-h-[min(62vh,520px)] gap-3 overflow-auto rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs font-medium text-muted-foreground">City</div>
@@ -508,7 +525,7 @@ export default function App() {
                   id="filters-popover"
                   role="dialog"
                   aria-label="Restaurant filters"
-                  className="absolute left-3 right-3 top-[calc(100%-0.25rem)] z-30 grid max-h-[min(62vh,520px)] gap-4 overflow-auto rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl"
+                  className="mobile-sheet-popover absolute left-3 right-3 top-[calc(100%-0.25rem)] z-30 grid max-h-[min(62vh,520px)] gap-4 overflow-auto rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs font-medium text-muted-foreground">Filters</div>

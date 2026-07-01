@@ -93,6 +93,11 @@
     min-height: 100%;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     margin: 0;
     background: var(--background);
@@ -227,6 +232,11 @@
 }
 
 @media (max-width: 767px) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
   .maplibregl-ctrl-top-left {
     top: 12px;
     left: 12px;
@@ -239,5 +249,11 @@
 
   .maplibregl-ctrl-bottom-right {
     bottom: calc(var(--mobile-sheet-height, 92px) + env(safe-area-inset-bottom) + 12px);
+  }
+
+  .mobile-sheet-popover {
+    max-height: calc(var(--mobile-sheet-height, 92px) - 15rem);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 }
