@@ -4,18 +4,20 @@ import { detailLine, sourceLabel } from "../../appUtils";
 import { cn } from "../../lib/utils";
 import { SourceDot, SourcePill } from "./SourcePill";
 
-const rowHeight = 65;
+const rowHeight = 60;
 const overscanRows = 6;
 const defaultViewportHeight = 640;
 
 function RestaurantListComponent({
   restaurants,
   selectedId,
-  onSelect
+  onSelect,
+  emptyMessage = "No restaurants match the current filters."
 }: {
   restaurants: Restaurant[];
   selectedId?: string;
   onSelect: (restaurant: Restaurant) => void;
+  emptyMessage?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -95,7 +97,7 @@ function RestaurantListComponent({
           </div>
         </div>
       ) : (
-        <div className="px-4 py-3 text-sm text-muted-foreground">No restaurants match the current filters.</div>
+        <div className="px-4 py-3 text-sm text-muted-foreground">{emptyMessage}</div>
       )}
     </div>
   );

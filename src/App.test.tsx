@@ -5,13 +5,26 @@ import type { RestaurantResponse } from "../shared/types";
 import App from "./App";
 
 vi.mock("./MapView", () => ({
-  MapView: ({ restaurants, onSelect, focusRequest, cityCenter }: any) => (
+  MapView: ({ restaurants, onSelect, focusRequest, cityCenter, onViewportChange }: any) => (
     <div
       data-testid="map"
       data-focus-id={focusRequest?.id ?? ""}
       data-center={`${cityCenter.latitude},${cityCenter.longitude}`}
       data-restaurants={restaurants.map((restaurant: any) => restaurant.name).join("|")}
     >
+      <button
+        type="button"
+        onClick={() =>
+          onViewportChange?.({
+            west: -74.02,
+            south: 40.7,
+            east: -74,
+            north: 40.72
+          })
+        }
+      >
+        simulate lower manhattan viewport
+      </button>
       {restaurants.map((restaurant: any) => (
         <button key={restaurant.id} type="button" onClick={() => onSelect(restaurant)}>
           marker {restaurant.name}
@@ -125,6 +138,7 @@ test("filters restaurants by price", async () => {
   render(<App />);
   await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
 
+  await userEvent.click(screen.getByRole("button", { name: "Filters" }));
   await userEvent.click(within(screen.getByLabelText("Price filter")).getByRole("button", { name: "$$" }));
 
   expect(screen.getByRole("heading", { name: "Sushi Ouji" })).toBeInTheDocument();
@@ -151,6 +165,54 @@ test("requests map focus when a restaurant is selected from the list", async () 
   expect(screen.getByTestId("map")).toHaveAttribute("data-focus-id", "resy:4");
 });
 
+test("updates the restaurant list from the current map viewport", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  const list = screen.getByLabelText("Restaurants");
+  expect(within(list).getByRole("button", { name: /Le Gratin/i })).toBeInTheDocument();
+  expect(within(list).getByRole("button", { name: /Sushi Ouji/i })).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "simulate lower manhattan viewport" }));
+
+  expect(within(list).getByRole("button", { name: /Le Gratin/i })).toBeInTheDocument();
+  expect(within(list).queryByRole("button", { name: /Sushi Ouji/i })).not.toBeInTheDocument();
+  expect(screen.getByText("1 shown")).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Le Gratin|Sushi Ouji");
+});
+
+test("preserves the current map viewport when filters change", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    })
+  );
+
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
+
+  const list = screen.getByLabelText("Restaurants");
+  await userEvent.click(screen.getByRole("button", { name: "simulate lower manhattan viewport" }));
+  expect(within(list).queryByRole("button", { name: /Sushi Ouji/i })).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+  await userEvent.click(within(screen.getByLabelText("Price filter")).getByRole("button", { name: "$$" }));
+
+  expect(within(list).queryByRole("button", { name: /Sushi Ouji/i })).not.toBeInTheDocument();
+  expect(screen.getByText("No restaurants in the current map view.")).toBeInTheDocument();
+  expect(screen.getByTestId("map")).toHaveAttribute("data-restaurants", "Sushi Ouji");
+});
+
 test("searches and switches supported cities", async () => {
   const fetchMock = vi
     .fn()
@@ -170,6 +232,7 @@ test("searches and switches supported cities", async () => {
   render(<App />);
   await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
 
+  await userEvent.click(screen.getByRole("button", { name: /Change city/i }));
   await userEvent.type(screen.getByLabelText("Search cities"), "los");
   expect(screen.getByRole("button", { name: /Los Angeles/i })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Chicago/i })).not.toBeInTheDocument();
@@ -193,6 +256,7 @@ test("moves the map to the clicked city before new restaurant data resolves", as
   render(<App />);
   await waitFor(() => expect(screen.getByRole("heading", { name: "Le Gratin" })).toBeInTheDocument());
 
+  await userEvent.click(screen.getByRole("button", { name: /Change city/i }));
   await userEvent.click(screen.getByRole("button", { name: /Los Angeles/i }));
 
   expect(screen.getByRole("heading", { name: "Los Angeles Restaurant Map" })).toBeInTheDocument();
@@ -302,7 +366,7 @@ test("virtualizes the restaurant list while preserving the shown count", async (
   expect(mountedRows.length).toBeLessThan(251);
   expect(within(list).getByRole("button", { name: /Place 001/i })).toBeInTheDocument();
 
-  list.scrollTop = 240 * 65;
+  list.scrollTop = 240 * 60;
   fireEvent.scroll(list);
 
   await waitFor(() => expect(within(list).getByRole("button", { name: /Place 241/i })).toBeInTheDocument());

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import type { Restaurant } from "../shared/types";
 import { restaurantLabels } from "../shared/labels";
-import { filterRestaurants, topTags } from "./appUtils";
+import { filterRestaurants, filterRestaurantsByBounds, topTags } from "./appUtils";
 
 function restaurant(overrides: Partial<Restaurant>): Restaurant {
   return {
@@ -53,4 +53,21 @@ test("filters restaurants by selected prices", () => {
     "Mid Cafe",
     "Special Dinner"
   ]);
+});
+
+test("filters restaurants by map bounds", () => {
+  const restaurants = [
+    restaurant({ id: "test:1", name: "Inside", latitude: 40.71, longitude: -74.01 }),
+    restaurant({ id: "test:2", name: "North", latitude: 40.75, longitude: -74.01 }),
+    restaurant({ id: "test:3", name: "West", latitude: 40.71, longitude: -74.08 })
+  ];
+
+  expect(
+    filterRestaurantsByBounds(restaurants, {
+      west: -74.03,
+      south: 40.7,
+      east: -74,
+      north: 40.72
+    }).map((item) => item.name)
+  ).toEqual(["Inside"]);
 });

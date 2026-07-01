@@ -3,6 +3,7 @@ import maplibregl, { type GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection, Point } from "geojson";
 import type { CityCenter } from "../shared/cities";
 import type { Restaurant } from "../shared/types";
+import type { MapBounds } from "./appUtils";
 import {
   addRestaurantLayers,
   clusterLayerId,
@@ -27,9 +28,21 @@ interface MapViewProps {
   };
   cityCenter: CityCenter;
   onSelect: (restaurant: Restaurant) => void;
+  onViewportChange?: (bounds: MapBounds) => void;
+  fitBoundsKey?: string;
 }
 
 const restaurantFocusZoom = 16;
+
+function currentMapBounds(map: maplibregl.Map): MapBounds {
+  const bounds = map.getBounds();
+  return {
+    west: bounds.getWest(),
+    south: bounds.getSouth(),
+    east: bounds.getEast(),
+    north: bounds.getNorth()
+  };
+}
 
 function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
   const run = () => {
@@ -60,14 +73,24 @@ function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
   return cleanup;
 }
 
-function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, onSelect }: MapViewProps) {
+function MapViewComponent({
+  restaurants,
+  selectedId,
+  focusRequest,
+  cityCenter,
+  onSelect,
+  onViewportChange,
+  fitBoundsKey
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const popupRestaurantIdRef = useRef<string | null>(null);
+  const fittedBoundsKeyRef = useRef<string | undefined>(undefined);
   const restaurantsRef = useRef(restaurants);
   const dataRef = useRef<FeatureCollection<Point>>(featureCollection([]));
   const onSelectRef = useRef(onSelect);
+  const onViewportChangeRef = useRef(onViewportChange);
   const selectedIdRef = useRef(selectedId);
   const cityCenterRef = useRef(cityCenter);
   const data = useMemo(() => featureCollection(restaurants), [restaurants]);
@@ -75,6 +98,7 @@ function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, o
   restaurantsRef.current = restaurants;
   dataRef.current = data;
   onSelectRef.current = onSelect;
+  onViewportChangeRef.current = onViewportChange;
   selectedIdRef.current = selectedId;
   cityCenterRef.current = cityCenter;
 
@@ -102,11 +126,18 @@ function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, o
         .addTo(map);
     }
 
+    function emitViewport() {
+      onViewportChangeRef.current?.(currentMapBounds(map));
+    }
+
     map.on("load", () => {
       addRestaurantLayers(map);
       (map.getSource(sourceId) as GeoJSONSource).setData(dataRef.current);
       map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
+      emitViewport();
     });
+
+    map.on("moveend", emitViewport);
 
     map.on("click", clusterLayerId, (event) => {
       const feature = event.features?.[0];
@@ -165,16 +196,31 @@ function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, o
         popupRef.current = null;
         popupRestaurantIdRef.current = null;
       }
+    };
 
-      if (!restaurants.length) {
-        map.easeTo({
-          center: [cityCenter.longitude, cityCenter.latitude],
-          zoom: 11,
-          duration: 450
-        });
-        return;
-      }
+    return runWithRestaurantLayers(map, syncData);
+  }, [data, restaurants]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    popupRef.current?.remove();
+    popupRef.current = null;
+    popupRestaurantIdRef.current = null;
+
+    map.easeTo({
+      center: [cityCenter.longitude, cityCenter.latitude],
+      zoom: 11,
+      duration: 450
+    });
+  }, [cityCenter]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fitBoundsKey || fittedBoundsKeyRef.current === fitBoundsKey || !restaurants.length) return;
+
+    const fitRestaurants = () => {
       const bounds = new maplibregl.LngLatBounds();
       for (const restaurant of restaurants) {
         bounds.extend([restaurant.longitude, restaurant.latitude]);
@@ -184,10 +230,11 @@ function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, o
         maxZoom: 14,
         duration: 450
       });
+      fittedBoundsKeyRef.current = fitBoundsKey;
     };
 
-    return runWithRestaurantLayers(map, syncData);
-  }, [cityCenter, data, restaurants]);
+    return runWithRestaurantLayers(map, fitRestaurants);
+  }, [fitBoundsKey, restaurants]);
 
   useEffect(() => {
     const map = mapRef.current;

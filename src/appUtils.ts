@@ -5,6 +5,12 @@ export type SourceFilter = RestaurantSource | "all";
 export type ExternalSourceDomain = "resy.com" | "inkind.com";
 export const priceOptions = ["$", "$$", "$$$", "$$$$"] as const;
 export type PriceFilter = (typeof priceOptions)[number];
+export interface MapBounds {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
 
 export { restaurantLabels };
 
@@ -47,6 +53,20 @@ export function filterRestaurants(
       .join(" ")
       .toLowerCase();
     return haystack.includes(normalizedQuery);
+  });
+}
+
+export function filterRestaurantsByBounds(restaurants: Restaurant[], bounds: MapBounds | undefined): Restaurant[] {
+  if (!bounds) return restaurants;
+
+  return restaurants.filter((restaurant) => {
+    const inLatitude = restaurant.latitude >= bounds.south && restaurant.latitude <= bounds.north;
+    const inLongitude =
+      bounds.east >= bounds.west
+        ? restaurant.longitude >= bounds.west && restaurant.longitude <= bounds.east
+        : restaurant.longitude >= bounds.west || restaurant.longitude <= bounds.east;
+
+    return inLatitude && inLongitude;
   });
 }
 
