@@ -136,5 +136,5 @@ export function inKindAppUrl(restaurant: Restaurant): string | undefined {
   const legacySlug = legacyInKindPurchaseSlug(url);
   if (!legacySlug) return sourceUrl;
 
-  return inKindPurchaseUrl(restaurant.sourceIds.inkindLocationId ?? legacySlug);
+  return inKindPurchaseUrl(legacySlug);
 }

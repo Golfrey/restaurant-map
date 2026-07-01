@@ -182,7 +182,7 @@ test("renders map data and source links", async () => {
   expect(screen.getByRole("link", { name: "Open Resy" })).toHaveAttribute("href", "https://resy.com/a");
   expect(screen.getByRole("link", { name: "Open inKind" })).toHaveAttribute(
     "href",
-    "https://app.inkind.com/purchase/2"
+    "https://app.inkind.com/purchase/le-gratin"
   );
 
   await userEvent.type(screen.getByPlaceholderText("Search restaurants, labels"), "sushi");

@@ -82,7 +82,7 @@ test("keeps inKind app purchase links", () => {
   ).toBe("https://app.inkind.com/purchase/le-gratin");
 });
 
-test("rewrites legacy inKind purchase subdomains to app links", () => {
+test("rewrites legacy inKind purchase subdomains to slugged app links", () => {
   expect(
     inKindAppUrl(
       restaurant({
@@ -90,7 +90,7 @@ test("rewrites legacy inKind purchase subdomains to app links", () => {
         sourceUrls: { inkind: "https://le-gratin.inkind.com/" }
       })
     )
-  ).toBe("https://app.inkind.com/purchase/44");
+  ).toBe("https://app.inkind.com/purchase/le-gratin");
 });
 
 test("does not create inKind app links from unsafe source urls", () => {
