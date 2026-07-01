@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import maplibregl, { type GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection, Point } from "geojson";
 import type { CityCenter } from "../shared/cities";
@@ -14,8 +14,7 @@ import {
   markerLayerId,
   restaurantPopupHtml,
   selectedLayerId,
-  sourceId,
-  type MapTone
+  sourceId
 } from "./map/restaurantMap";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -26,7 +25,6 @@ interface MapViewProps {
     id: string;
     nonce: number;
   };
-  mapTone: MapTone;
   cityCenter: CityCenter;
   onSelect: (restaurant: Restaurant) => void;
 }
@@ -62,7 +60,7 @@ function runWithRestaurantLayers(map: maplibregl.Map, callback: () => void) {
   return cleanup;
 }
 
-export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCenter, onSelect }: MapViewProps) {
+function MapViewComponent({ restaurants, selectedId, focusRequest, cityCenter, onSelect }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -72,7 +70,6 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
   const onSelectRef = useRef(onSelect);
   const selectedIdRef = useRef(selectedId);
   const cityCenterRef = useRef(cityCenter);
-  const styleToneRef = useRef<MapTone | null>(null);
   const data = useMemo(() => featureCollection(restaurants), [restaurants]);
 
   restaurantsRef.current = restaurants;
@@ -86,7 +83,7 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: mapStyleUrl(mapTone),
+      style: mapStyleUrl("dark"),
       center: [cityCenterRef.current.longitude, cityCenterRef.current.latitude],
       zoom: 11,
       attributionControl: false
@@ -95,7 +92,6 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-left");
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
     mapRef.current = map;
-    styleToneRef.current = mapTone;
 
     function openRestaurantPopup(restaurant: Restaurant, coordinates: [number, number]) {
       popupRef.current?.remove();
@@ -155,26 +151,6 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
       mapRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (styleToneRef.current === mapTone) return;
-    styleToneRef.current = mapTone;
-
-    const restoreLayers = () => {
-      addRestaurantLayers(map);
-      (map.getSource(sourceId) as GeoJSONSource).setData(dataRef.current);
-      map.setFilter(selectedLayerId, ["==", ["get", "id"], selectedIdRef.current ?? ""]);
-    };
-
-    map.once("style.load", restoreLayers);
-    map.setStyle(mapStyleUrl(mapTone));
-
-    return () => {
-      map.off("style.load", restoreLayers);
-    };
-  }, [mapTone]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -252,3 +228,5 @@ export function MapView({ restaurants, selectedId, focusRequest, mapTone, cityCe
 
   return <div ref={containerRef} className="map-canvas" data-testid="map-canvas" />;
 }
+
+export const MapView = memo(MapViewComponent);

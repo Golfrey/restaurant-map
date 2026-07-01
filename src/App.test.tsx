@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
 import type { RestaurantResponse } from "../shared/types";
@@ -243,7 +243,7 @@ test("does not render unsafe external source urls", async () => {
   expect(screen.queryByRole("link", { name: "Open inKind" })).not.toBeInTheDocument();
 });
 
-test("renders the full filtered list consistently with the shown count", async () => {
+test("virtualizes the restaurant list while preserving the shown count", async () => {
   const restaurants = Array.from({ length: 251 }, (_, index) => ({
     id: `resy:${index + 1}`,
     source: "resy" as const,
@@ -275,5 +275,13 @@ test("renders the full filtered list consistently with the shown count", async (
   await waitFor(() => expect(screen.getByText("251 shown")).toBeInTheDocument());
 
   const list = screen.getByLabelText("Restaurants");
-  expect(within(list).getAllByRole("button")).toHaveLength(251);
+  const mountedRows = within(list).getAllByRole("button");
+  expect(mountedRows.length).toBeGreaterThan(0);
+  expect(mountedRows.length).toBeLessThan(251);
+  expect(within(list).getByRole("button", { name: /Place 001/i })).toBeInTheDocument();
+
+  list.scrollTop = 240 * 65;
+  fireEvent.scroll(list);
+
+  await waitFor(() => expect(within(list).getByRole("button", { name: /Place 241/i })).toBeInTheDocument());
 });

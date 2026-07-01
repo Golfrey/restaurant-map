@@ -49,7 +49,6 @@ export default function App() {
     [cityData, query, source, selectedTags]
   );
   const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === selectedId) ?? restaurants[0];
-  const mapTone = theme === "dark" ? "dark" : "lite";
   const generatedLabel = cityData?.generatedAt ? new Date(cityData.generatedAt).toLocaleString() : "Waiting for data";
 
   const selectRestaurant = useCallback((restaurant: Restaurant) => {
@@ -165,7 +164,6 @@ export default function App() {
               restaurants={restaurants}
               selectedId={selectedRestaurant?.id}
               focusRequest={mapFocusRequest}
-              mapTone={mapTone}
               cityCenter={selectedCity.center}
               onSelect={selectRestaurant}
             />
