@@ -32,6 +32,8 @@ const defaultProtomapsUrl = "/maps/protomaps.pmtiles";
 const defaultProtomapsLanguage = "en";
 const protomapsGlyphsUrl = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
 const protomapsSpriteBaseUrl = "https://protomaps.github.io/basemaps-assets/sprites/v4";
+const mapAttributionHtml =
+  '<a href="https://protomaps.com/" target="_blank" rel="noopener noreferrer">Protomaps</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
 const detailedTransitCoverage: MultiPolygon = {
   type: "MultiPolygon",
   coordinates: [
@@ -171,8 +173,7 @@ export function mapStyle(tone: MapTone): string | maplibregl.StyleSpecification 
       [protomapsSourceId]: {
         type: "vector",
         url: pmtilesStyleUrl(tilesUrl),
-        attribution:
-          '<a href="https://protomaps.com/" target="_blank" rel="noopener noreferrer">Protomaps</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+        attribution: mapAttributionHtml
       }
     },
     layers: layers(protomapsSourceId, namedFlavor(flavorName), { lang: "en" })

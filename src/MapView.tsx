@@ -50,6 +50,8 @@ interface MapViewProps {
 }
 
 const restaurantFocusZoom = 16;
+const mapLibreAttributionHtml =
+  '<a href="https://maplibre.org/" target="_blank" rel="noopener noreferrer">MapLibre</a>';
 const globalWithPmtilesProtocol = globalThis as typeof globalThis & {
   __resyPmtilesProtocolRegistered?: boolean;
 };
@@ -154,7 +156,13 @@ function MapViewComponent({
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-left");
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    map.addControl(
+      new maplibregl.AttributionControl({
+        compact: true,
+        customAttribution: mapLibreAttributionHtml
+      }),
+      "top-right"
+    );
     mapRef.current = map;
 
     function openRestaurantPopup(restaurant: Restaurant, coordinates: [number, number]) {
